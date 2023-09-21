@@ -1,169 +1,60 @@
-# quantready-api
+# PromptedGraphs
 
-A template to build and deploy fastapi applications
+**From Dataset Labeling to Deployment: The Power of NLP and LLMs Combined.**
 
-Built using [quantready](https://github.com/closedloop-technologies/quantready) using template ([https://github.com/closedloop-technologies/quantready-base])[https://github.com/closedloop-technologies/quantready-base]
+## Description
 
-# quantready-base
-
-Publish public or private python libraries - using the modern python stack
+PromptedGraphs is a Python library that aims to seamlessly integrate traditional NLP methods with the capabilities of modern Large Language Models (LLMs) in the realm of knowledge graphs. Our library offers tools tailored for dataset labeling, model training, and smooth deployment to production environments. We leverage the strengths of [spacy](https://github.com/explosion/spaCy) for core NLP tasks, [snorkel](https://github.com/closedloop-technologies/snorkel) for effective data labeling, and `async` to ensure enhanced performance. Our mission is to provide a harmonized solution to knowledge graph development when you have to merge traditional and LLM-driven approaches, squarely addressing the challenges associated with accuracy, efficiency, and affordability.
 
 ## ✨ Features
 
-Clean Code:
+- **Named Entity Recognition (NER)**: Customize ER labels based on your domain.
+- **Entity Resolution**: Deduplication and normalization
+- **Relationship Extraction**: Either open ended labels or constrain to your domain
+- **Entity Linking**: Link references in text to entities in a graph
+- **Graph Construction**: Create or update knowledge graphs
+  
+## Core Functions
 
-* ✔️ [poetry](https://python-poetry.org/) for dependency management
-* ✔️ [pre-commit](https://pre-commit.com/) hooks for code formatting, linting, and testing
-* ✔️ [unittest](https://docs.python.org/3/library/unittest.html) for testing
-* ✔️ [gitleaks](https://gitleaks.io/) for secrets scanning
+- **Dataset Labeling**: Efficient tools for labeling datasets, powered by `haystack`.
+- **Model Training**: Combine the reliability of NLP and the prowess of LLMs.
+- **Deployment**: Streamlined processes to ensure smooth transition to production.
 
-Deployment:
+## Requirements
 
-* ✔️ [github actions](https://github.com/actions) for CI/CD
-* ✔️ [docker](https://docker.com) for building containers
-* ✔️ [twine](https://twine.readthedocs.io/en/latest/) for publishing to pypi or private repositories
-* 🔲 [gcloud](https://cloud.google.com/sdk/gcloud) for publishing to private repositories
+- Python 3.10 or newer.
 
 ## 📦 Installation
 
-There are two ways to install:
-
-### 1. Install using `quantready` cli
-
-It is best to install as a template using [gh](https://cli.github.com/)
+To install `PromptedGraphs` via pip:
 
 ```bash
-pip install quantready
-
-# Create a new repo
-quantready create <your-repo> --template quantready/quantready-base
-
+pip install promptedgraphs
 ```
 
-### 2. Install as a template
+## Usage
 
-To install and configure yourself using [gh](https://cli.github.com/)
+```python
+from promptedgraphs import YourDesiredModule
 
-```bash
-gh template copy quantready/quantready-base <your-repo>
-
-pip install typer
-python configure.py
+# Your code and usage examples here...
 ```
 
-## 💻 Development
+## Documentation
 
-### Install dependencies
+Detailed documentation is available at [link_to_your_documentation](#).
 
-```bash
-# Create a virtual environment
-python3 -m venv venv
-source venv/bin/activate
+## 📚 Resources
 
-# Install dependencies
-poetry install
+  * [Awesome-LLM-KG](https://github.com/RManLuo/Awesome-LLM-KG)
+  * [KG-LLM-Papers](https://github.com/zjukg/KG-LLM-Papers)
 
-# Install pre-commit hooks
-pre-commit install --install-hooks
+## Contributing
 
-# Create a .env file and modify it's contents
-cp .env.example .env
-
-```
-
-## 🚀 Deployment
-
-The best way is to use quantready cli
-
-```bash
-# Configure the project and cloud providers
-quantready configure
-```
-
-This will create a .quantready file in the root of the project.
-
-### GitHub Actions: On push to `main`
-
-Github actions are configured to run on push to main.
-It will read the config from .quantready file and
-publish the library to pypi or private repository as well as build the docker image and push it to docker hub or gcr.
-
-### Push Docker image
-
-```bash
-# Build the image
-docker build -t quantready/quantready-base .
-
-# Run the image
-docker run -it --rm quantready/quantready-base
-
-# Push the image to docker hub
-docker push quantready/quantready-base
-
-# Push the image to gcr
-docker tag quantready/quantready-base gcr.io/<your-project>/quantready-base
-```
-
-### Publish to pypi
-
-```bash
-# Build the package
-poetry build
-poetry run twine upload dist/*
-```
-
-Get `PYPI_API_TOKEN` from <https://pypi.org/manage/account/token/>
-And set it as a github secret <https://github.com/><username>/<repo>/settings/secrets/actions
-
-### Publish to private repository
-
-```bash
-# Build the package
-poetry build
-poetry run twine upload --repository-url https://pypi.yourdomain.com dist/*
-
-```
+We welcome contributions! Please message me @seankruzel or create issues or pull requests.
 
 ## 📝 License
 
 This project is licensed under the terms of the [MIT license](/LICENSE).
 
-## 📚 Resources
-
-* [Python Packaging User Guide](https://packaging.python.org/)
-* [Poetry](https://python-poetry.org/)
-* [Pre-commit](https://pre-commit.com/)
-* [Github Actions](
-https://docs.github.com/en/actions)
-* [Docker](https://docker.com)
-* [Twine](https://twine.readthedocs.io/en/latest/)
-* [Gcloud](https://cloud.google.com/sdk/gcloud)
-* [GitHub CLI](https://cli.github.com/)
-
-## ✅✅✅ QuantReady Stack - Templates
-
-* [quantready](https://github.com/closedloop-technologies/quantready)
-  * CLI for creating and configuring projects and using the quantready-* templates
-* [quantready-base](https://github.com/closedloop-technologies/quantready)
-  * This template - build and publish python libraries and docker images
-* [quantready-api](https://github.com/closedloop-technologies/quantready-api) - A template to build and deploy fastapi applications
-  * authentication - api key or oauth
-  * authorization - RBAC via OSO
-  * rate limiting - via redis
-  * job-queues to support long-running tasks
-  * workers
-  * caching
-  * github actions to deploy to gcloud
-  * all other features of quantready-base
-* [quantready-vendor](https://github.com/closedloop-technologies/quantready-vendor) - A template to sell and meter access to your APIs. Supports time-based and usage-based pricing.
-  * supports free and paid endpoints
-  * billing per API call or per time-period
-  * stripe-cli integration for managing products and billing
-  * pricing-tables, account management and checkout
-  * usage tracking api
-  * all other features of quantready-api
-* [quantready-chat]
-  * A template to build and deploy chatbots
-  * Supports Websockets
-  * Slack Integration
-  * all other features of quantready-vendor
+Built using [quantready](https://github.com/closedloop-technologies/quantready) using template ([https://github.com/closedloop-technologies/quantready-base])[https://github.com/closedloop-technologies/quantready-base]
