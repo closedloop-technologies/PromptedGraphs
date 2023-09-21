@@ -1,7 +1,7 @@
 import unittest
 
-from quantready_api import __name__ as name
-from quantready_api.config import Config
+from promptedgraphs import __name__ as name
+from promptedgraphs.config import Config
 
 
 class TestConfig(unittest.TestCase):

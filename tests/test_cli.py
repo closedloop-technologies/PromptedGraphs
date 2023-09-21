@@ -3,7 +3,7 @@ import unittest
 
 from typer.testing import CliRunner
 
-from quantready_api import cli
+from promptedgraphs import cli
 
 
 class TestCLI(unittest.TestCase):

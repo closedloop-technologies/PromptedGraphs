@@ -4,12 +4,12 @@ from subprocess import run
 
 class TestInstall(unittest.TestCase):
     def test_library_installed(self):
-        import quantready_api
+        import promptedgraphs
 
-        self.assertIsNotNone(quantready_api)
+        self.assertIsNotNone(promptedgraphs)
 
     def test_module(self):
-        run(["python", "-m", "quantready_api", "--help"])
+        run(["python", "-m", "promptedgraphs", "--help"])
 
     def test_consolescript(self):
-        run(["quantready-api", "--help"])
+        run(["promptedgraphs", "--help"])

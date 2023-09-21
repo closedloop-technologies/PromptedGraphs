@@ -59,4 +59,4 @@ jobs:
       - name: Run tests
         run: |
           source .venv/bin/activate
-          pytest tests/ --cov=quantready_base
+          pytest tests/ --cov=promptedgraphs

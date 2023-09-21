@@ -9,7 +9,7 @@ repos:
      args: ['--fix=lf']
    - id: check-added-large-files
      args: ['--maxkb=30000']
-   - id: no-commit-to-branch
+  #  - id: no-commit-to-branch
  - repo: https://github.com/asottile/pyupgrade
    rev: v3.3.1
    hooks:
@@ -24,23 +24,23 @@ repos:
    rev: 23.3.0
    hooks:
    - id: black
-#  - repo: https://github.com/myint/eradicate
-#    rev: v2.1.0
-#    hooks:
-#    - id: eradicate
+ - repo: https://github.com/myint/eradicate
+   rev: v2.1.0
+   hooks:
+   - id: eradicate
  - repo: https://github.com/PyCQA/flake8
    rev: 5.0.4
    hooks:
    - id: flake8
-#  - repo: local
-#    hooks:
-#    - id: vulture
-#      name: vulture
-#      description: Find dead Python code
-#      entry: vulture
-#      args: ["--min-confidence", "80", "--exclude", "env,examples/human_eval,examples/leetcode_results", "."]
-#      language: system
-#      types: [python]
+ - repo: local
+   hooks:
+   - id: vulture
+     name: vulture
+     description: Find dead Python code
+     entry: vulture
+     args: ["--min-confidence", "80", "--exclude", "env,venv,examples", "."]
+     language: system
+     types: [python]
  - repo: https://github.com/PyCQA/autoflake
    rev: v2.0.1
    hooks:

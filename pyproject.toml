@@ -1,11 +1,11 @@
 [tool.poetry]
-name = "quantready-api"
+name = "promptedgraphs"
 version = "0.1.0"
 description = "A template to build and deploy fastapi applications"
 authors = ["Sean Kruzel <sean@closedloop.tech>"]
 license = "MIT"
 readme = "README.md"
-packages = [{ include = "quantready_api" }]
+packages = [{ include = "promptedgraphs" }]
 classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Programming Language :: Python :: 3.10",
@@ -13,8 +13,8 @@ classifiers = [
 ]
 
 [tool.poetry.urls]
-"Repository" = "https://github.com/closedLoop/quantready-api"
-"Bug Tracker" = "https://github.com/closedLoop/quantready-api/issues"
+"Repository" = "https://github.com/closedLoop/promptedgraphs"
+"Bug Tracker" = "https://github.com/closedLoop/promptedgraphs/issues"
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -27,6 +27,11 @@ termcolor = "^2.3.0"
 tabulate = "^0.9.0"
 colorama = "^0.4.6"
 python-dotenv = "^1.0.0"
+dataclasses-json = "^0.6.0"
+pydantic = "^2.3.0"
+tiktoken = "^0.5.1"
+sse-starlette = "^1.6.5"
+httpx = "^0.25.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.3.0"
@@ -46,7 +51,7 @@ pip-upgrader = "^1.4.15"
 pyupgrade = "^3.4.0"
 
 [tool.poetry.scripts]
-quantready-api = "quantready_api.cli:app"
+promptedgraphs = "promptedgraphs.cli:app"
 
 [build-system]
 requires = ["poetry-core"]

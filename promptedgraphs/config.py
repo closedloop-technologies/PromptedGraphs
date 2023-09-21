@@ -1,25 +1,26 @@
 """Loads the configuration file for the QuantReady package."""
 # Load the configuration file
-from dataclasses import dataclass
+import os
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from dotenv import load_dotenv
 
-from quantready_api import __description__ as description
-from quantready_api import __name__ as name
-from quantready_api import __version__ as version
+from promptedgraphs import __description__ as description
+from promptedgraphs import __title__ as name
+from promptedgraphs import __version__ as version
 
 
 @dataclass
 class Config:
-    """Configuration class for QuantReady"""
+    """Configuration class for PromptedGraphs"""
 
-    # Add configuration variables here
-    # Example:
-    # MY_VAR: str = "my_value"
     name: str = name
     description: str = description
     version: str = version
+    openai_api_key: str | None = field(
+        default_factory=lambda: os.getenv("OPENAI_API_KEY")
+    )
 
 
 def load_config() -> Config:
