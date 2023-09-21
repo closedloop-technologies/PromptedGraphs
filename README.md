@@ -81,7 +81,7 @@ displacy.render(
     },
 )
 ```
-![displacy-sentiment-example](https://github.com/closedloop-technologies/promptedgraphs/assets/displacy-sentiment-example.png)
+![displacy-sentiment-example](./assets/displacy-sentiment-example.png?raw=true)
 
 
 ## 📚 Resources
