@@ -13,7 +13,7 @@ PromptedGraphs is a Python library that aims to seamlessly integrate traditional
 - **Relationship Extraction**: Either open ended labels or constrain to your domain
 - **Entity Linking**: Link references in text to entities in a graph
 - **Graph Construction**: Create or update knowledge graphs
-  
+
 ## Core Functions
 
 - **Dataset Labeling**: Efficient tools for labeling datasets, powered by `haystack`.
@@ -30,19 +30,59 @@ To install `PromptedGraphs` via pip:
 
 ```bash
 pip install promptedgraphs
+# or
+poetry add promptedgraphs
 ```
 
 ## Usage
 
+from [examples/er_reviews.ipynb](https://github.com/closedloop-technologies/promptedgraphs/examples/er_reviews.ipynb)
+
 ```python
-from promptedgraphs import YourDesiredModule
+from spacy import displacy
+from promptedgraphs.config import Config
+from promptedgraphs.entity_recognition import extract_entities
 
-# Your code and usage examples here...
+labels = {
+    "POSITIVE": "A postive review of a product or service.",
+    "NEGATIVE": "A negative review of a product or service.",
+    "NEUTRAL": "A neutral review of a product or service.",
+}
+
+text_of_reviews = """
+1. "I absolutely love this product. It's been a game changer!"
+2. "The service was quite poor and the staff was rude."
+3. "The item is okay. Nothing special, but it gets the job done."
+""".strip()
+
+
+# Label Sentiment
+ents = []
+async for msg in extract_entities(
+    name="sentiment",
+    description="Sentiment Analysis of Customer Reviews",
+    text=text_of_reviews,
+    labels=labels,
+    config=Config(),  # Reads `OPENAI_API_KEY` from .env file or environment
+):
+    ents.append(msg)
+
+# Show Results using spacy.displacy
+displacy.render(
+    {
+        "text": text_of_reviews,
+        "ents": [e.to_dict() for e in ents],
+    },
+    style="ent",
+    jupyter=True,
+    manual=True,
+    options={
+        "colors": {"POSITIVE": "#7aecec", "NEGATIVE": "#f44336", "NEUTRAL": "#f4f442"}
+    },
+)
 ```
+![displacy-sentiment-example](https://github.com/closedloop-technologies/promptedgraphs/assets/displacy-sentiment-example.png)
 
-## Documentation
-
-Detailed documentation is available at [link_to_your_documentation](#).
 
 ## 📚 Resources
 
@@ -51,10 +91,10 @@ Detailed documentation is available at [link_to_your_documentation](#).
 
 ## Contributing
 
-We welcome contributions! Please message me @seankruzel or create issues or pull requests.
+We welcome contributions! Please DM me [@seankruzel](https://twitter.com/seankruzel) or create issues or pull requests.
 
 ## 📝 License
 
 This project is licensed under the terms of the [MIT license](/LICENSE).
 
-Built using [quantready](https://github.com/closedloop-technologies/quantready) using template ([https://github.com/closedloop-technologies/quantready-base])[https://github.com/closedloop-technologies/quantready-base]
+Built using [quantready](https://github.com/closedloop-technologies/quantready) using template [https://github.com/closedloop-technologies/quantready-api](https://github.com/closedloop-technologies/quantready-api)

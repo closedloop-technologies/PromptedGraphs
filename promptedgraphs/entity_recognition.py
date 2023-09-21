@@ -77,14 +77,14 @@ Assume these definitions are written by an expert and follow them closely.\n\n""
 
 def build_function_spec(
     label_list: list[str],
-    name="extract_entities",
+    function_name="extract_entities",
     key="entities",
     description="",
     include_reason=True,
 ):
     spec = [
         {
-            "name": name,
+            "name": function_name,
             "type": "function",
             "description": description,
             "parameters": {
@@ -148,24 +148,24 @@ async def extract_entities(
     text: str,
     labels: dict[str, str],
     config: Config,
+    name="entities",
     description: str | None = "Extract Entities from text",
+    include_reason=True,
     model=GPT_MODEL,
     temperature=0.2,
-    key="entities",
-    include_reason=True,
 ):
     label_list = sorted(labels.keys())
     messages = build_message_list(
         text,
         label_list,
         labels=labels,
-        name=f"extract_{key}".lower().replace(" ", "_"),
+        name=f"extract_{name}".lower().replace(" ", "_"),
     )
 
     functions = build_function_spec(
         label_list,
-        name=f"extract_{key}".lower().replace(" ", "_"),
-        key=key,
+        function_name=f"extract_{name}".lower().replace(" ", "_"),
+        key=name,
         description=description,
         include_reason=include_reason,
     )
@@ -184,7 +184,7 @@ async def extract_entities(
 
         if msg.data == "[DONE]":
             with contextlib.suppress(json.decoder.JSONDecodeError):
-                s = json.loads(payload).get(key, [])
+                s = json.loads(payload).get(name, [])
                 for entity in _format_entities(s[count:], text):
                     yield entity
 
@@ -201,7 +201,7 @@ async def extract_entities(
 
         # TODO rewrite this to be more robust streaming json parser
         payload += delta.get("function_call", {}).get("arguments", "")
-        s = extract_partial_list(payload, key=key)
+        s = extract_partial_list(payload, key=name)
         if s is None or len(s) == 0 or len(s) <= count:
             continue
 
