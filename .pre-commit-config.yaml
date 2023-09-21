@@ -1,0 +1,59 @@
+minimum_pre_commit_version: '2.9.0'
+repos:
+ - repo: https://github.com/pre-commit/pre-commit-hooks
+   rev: v4.4.0
+   hooks:
+   - id: trailing-whitespace
+   - id: end-of-file-fixer
+   - id: mixed-line-ending
+     args: ['--fix=lf']
+   - id: check-added-large-files
+     args: ['--maxkb=30000']
+   - id: no-commit-to-branch
+ - repo: https://github.com/asottile/pyupgrade
+   rev: v3.3.1
+   hooks:
+   - id: pyupgrade
+     args: [--py310-plus]
+     files: \.py$
+ - repo: https://github.com/PyCQA/isort
+   rev: 5.12.0
+   hooks:
+   - id: isort
+ - repo: https://github.com/ambv/black
+   rev: 23.3.0
+   hooks:
+   - id: black
+#  - repo: https://github.com/myint/eradicate
+#    rev: v2.1.0
+#    hooks:
+#    - id: eradicate
+ - repo: https://github.com/PyCQA/flake8
+   rev: 5.0.4
+   hooks:
+   - id: flake8
+#  - repo: local
+#    hooks:
+#    - id: vulture
+#      name: vulture
+#      description: Find dead Python code
+#      entry: vulture
+#      args: ["--min-confidence", "80", "--exclude", "env,examples/human_eval,examples/leetcode_results", "."]
+#      language: system
+#      types: [python]
+ - repo: https://github.com/PyCQA/autoflake
+   rev: v2.0.1
+   hooks:
+   - id: autoflake
+     args: [--in-place, --remove-all-unused-imports, --remove-unused-variables]
+     types_or: [python, pyi]
+ - repo: https://github.com/adamchainz/blacken-docs
+   rev: 1.13.0
+   hooks:
+   - id: blacken-docs
+     additional_dependencies:
+     - black
+ - repo: https://github.com/gitleaks/gitleaks
+   rev: v8.16.1
+   hooks:
+   - id: gitleaks

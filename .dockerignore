@@ -1,0 +1,5 @@
+.git
+env
+venv
+htmlcov
+*.egg-info
