@@ -1,6 +1,6 @@
 import unittest
 
-from promptedgraphs import __name__ as name
+from promptedgraphs import __title__ as name
 from promptedgraphs.config import Config
 
 
