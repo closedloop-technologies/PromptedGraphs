@@ -89,6 +89,10 @@ displacy.render(
   * [Awesome-LLM-KG](https://github.com/RManLuo/Awesome-LLM-KG)
   * [KG-LLM-Papers](https://github.com/zjukg/KG-LLM-Papers)
 
+### Related Libraries
+  * [instructor](https://jxnl.github.io/instructor/)
+  * [marvin](https://github.com/PrefectHQ/marvin)
+
 ## Contributing
 
 We welcome contributions! Please DM me [@seankruzel](https://twitter.com/seankruzel) or create issues or pull requests.
