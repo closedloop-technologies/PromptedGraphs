@@ -2121,13 +2121,13 @@ typing-extensions = ">=4.6.0,<4.7.0 || >4.7.0"
 
 [[package]]
 name = "pyfiglet"
-version = "0.8.post1"
+version = "1.0.2"
 description = "Pure-python FIGlet implementation"
 optional = false
-python-versions = "*"
+python-versions = ">=3.9"
 files = [
-    {file = "pyfiglet-0.8.post1-py2.py3-none-any.whl", hash = "sha256:d555bcea17fbeaf70eaefa48bb119352487e629c9b56f30f383e2c62dd67a01c"},
-    {file = "pyfiglet-0.8.post1.tar.gz", hash = "sha256:c6c2321755d09267b438ec7b936825a4910fec696292139e664ca8670e103639"},
+    {file = "pyfiglet-1.0.2-py3-none-any.whl", hash = "sha256:889b351d79c99e50a3f619c8f8e6ffdb27fd8c939fc43ecbd7559bd57d5f93ea"},
+    {file = "pyfiglet-1.0.2.tar.gz", hash = "sha256:758788018ab8faaddc0984e1ea05ff330d3c64be663c513cc1f105f6a3066dab"},
 ]
 
 [[package]]
@@ -3411,4 +3411,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "eb6839fcf82add8b37d6c1b6c1f70580577a37fc8f2a92c049c2d8ec0a4048cd"
+content-hash = "6d21ded7de1c8893741429ac98c7b4332ca5d4eff9d6d35457bcf3c5e9be77e8"
