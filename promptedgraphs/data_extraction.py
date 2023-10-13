@@ -56,7 +56,7 @@ def format_fieldinfo(key, v: dict):
     return l.rstrip()
 
 
-def create_messages(text, name, labels):
+def create_messages(text, name, labels, custom_system_message=None):
     label_list = list(labels.keys())
 
     label_definitions = """Below are definitions of each field to help aid you in what kinds of structured data to extract for each label.
@@ -64,12 +64,14 @@ Assume these definitions are written by an expert and follow them closely.\n\n""
         [f" * {format_fieldinfo(k, dict(labels[k]))}" for k in label_list]
     )
 
+    custom_system_message = custom_system_message or SYSTEM_MESSAGE.format(
+        name=name, label_list=label_list, label_definitions=label_definitions
+    )
+
     messages = [
         ChatMessage(
             role="system",
-            content=SYSTEM_MESSAGE.format(
-                name=name, label_list=label_list, label_definitions=label_definitions
-            ),
+            content=custom_system_message,
         )
     ]
     if text:
@@ -186,6 +188,7 @@ async def extract_data(
     config: Config,
     model=GPT_MODEL,
     temperature=0.0,
+    custom_system_message: str | None = None,
 ):
     if is_parent_list := str(output_type).lower().startswith("list"):
         assert (
@@ -198,7 +201,12 @@ async def extract_data(
     name = schema["title"]
     fn_name = camelcase_to_words(schema["title"]).replace(" ", "_").lower()
 
-    messages = create_messages(text, schema["title"], schema["properties"])
+    messages = create_messages(
+        text,
+        schema["title"],
+        schema["properties"],
+        custom_system_message=custom_system_message,
+    )
     functions = create_functions(is_parent_list, schema, fn_name)
 
     count = 0

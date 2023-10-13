@@ -20,6 +20,7 @@ async def streaming_chat_completion_request(
     config: Config | None = None,
     temperature=0.2,
     max_tokens=4000,
+    stream=True,
 ) -> AsyncGenerator[bytes, None]:
     assert config and config.openai_api_key is not None, "OpenAI API Key not found"
 
@@ -34,7 +35,7 @@ async def streaming_chat_completion_request(
         "messages": [m.model_dump(exclude_none=True) for m in messages or []],
         "temperature": temperature,
         "max_tokens": max_tokens,
-        "stream": True,
+        "stream": stream,
     }
     if functions is not None and len(functions) > 0:
         json_data["functions"] = [

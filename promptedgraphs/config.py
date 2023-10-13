@@ -21,6 +21,9 @@ class Config:
     openai_api_key: str | None = field(
         default_factory=lambda: os.getenv("OPENAI_API_KEY")
     )
+    ogtags_api_key: str | None = field(
+        default_factory=lambda: os.getenv("OGTAGS_API_KEY")
+    )
 
 
 def load_config() -> Config:

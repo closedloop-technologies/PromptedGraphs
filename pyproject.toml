@@ -33,6 +33,8 @@ tiktoken = "^0.5.1"
 sse-starlette = "^1.6.5"
 httpx = "^0.25.0"
 spacy = "^3.6.1"
+googlemaps = "^4.10.0"
+beautifulsoup4 = "^4.12.2"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.3.0"

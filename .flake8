@@ -12,3 +12,4 @@ exclude =
     prompt_to_code.egg-info,
     env,
     dist
+    data_models
