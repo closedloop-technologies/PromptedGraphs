@@ -14,6 +14,7 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
 from promptedgraphs.config import load_config
+from promptedgraphs.llms.helpers import _sync_wrapper, extract_code_blocks
 from promptedgraphs.llms.openai_streaming import streaming_chat_completion_request
 from promptedgraphs.models import ChatMessage
 from promptedgraphs.sources.rtfm import fetch_from_ogtags
@@ -47,17 +48,6 @@ class ExampleResponse(BaseModel):
 
 The response should only contain two code blocks (one with JSON data and one with python code)
 """
-
-
-def extract_code_blocks(text: str) -> list[dict[str, str]]:
-    pattern = re.compile(r"```(.*?)\n(.*?)```", re.DOTALL)
-    matches = pattern.findall(text)
-
-    blocks = []
-    for match in matches:
-        block_type, content = match
-        blocks.append({"block_type": block_type.strip(), "content": content.strip()})
-    return blocks
 
 
 def get_functions_from_object(fn: classmethod):
@@ -132,7 +122,9 @@ async def html_to_markdown(html, url=None):
             payload += event.data
         elif event.retry:
             print(f"Retry: {event.retry}")
-    return json.loads(payload), url
+
+    data = json.loads(payload)
+    return data["choices"][0]["message"]["content"], url
 
 
 async def build_function_schemas(
@@ -168,7 +160,9 @@ async def build_function_schemas(
             ChatMessage(
                 role="assistant",
                 content=content,
-            ),
+            )
+        )
+        messages.append(
             ChatMessage(
                 role="user",
                 content=f"Please provide the missing `{','.join(missing_types)}` code block",
@@ -179,25 +173,12 @@ async def build_function_schemas(
         results.extend(extract_code_blocks(content))
 
     # Append the function signature documenation to the python code block
-    docs = f"""# {fn_name}\n\n```python{fn_signature}\n\n```"""
+    docs = f"""# {fn_name}\n\n```python\n{fn_signature}\n\n```"""
     for url, html in external_references.items():
         docs += f"\n\n## Additional documentation loaded from {url}\n\n{html}"
     results.append({"block_type": "md", "content": docs})
 
     return results
-
-
-async def _sync_wrapper(messages):
-    payload = ""
-    async for event in streaming_chat_completion_request(
-        messages=messages, functions=None, config=load_config(), stream=False
-    ):
-        if event.data:
-            payload += event.data
-        elif event.retry:
-            print(f"Retry: {event.retry}")
-    data = json.loads(payload)
-    return data
 
 
 async def register_function_as_datasource(
@@ -249,7 +230,10 @@ async def register_function_as_datasource(
     with open(datasource_registry / "meta.jsonl", "a") as f:
         f.write(json.dumps(meta) + "\n")
 
+    # Aggregate all the schemas into one file
+
 
 if __name__ == "__main__":
+    load_dotenv()
     gmaps = googlemaps.Client(key=os.environ["GOOGLEMAPS_API_KEY"])
     asyncio.run(register_function_as_datasource(gmaps))
