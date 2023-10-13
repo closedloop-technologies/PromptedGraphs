@@ -78,6 +78,7 @@ Here are some messages a chatbot might receive and their category
 """
 import asyncio
 
+import tqdm
 from pydantic import BaseModel, Field
 
 from promptedgraphs.config import Config, load_config
@@ -112,20 +113,38 @@ async def main():
         intent_name: str = Field(
             title="Intent Name",
             description="Canonical name of the user's intent",
-            examples=["book_flight", "order_food", "ask_weather"],
+            examples=[
+                "question",
+                "command",
+                "clarification",
+                "chit_chat",
+                "greeting",
+                "feedback",
+                "nonsensical",
+                "closing",
+                "harrassment",
+                "unknown",
+            ],
         )
-        description: str = Field(
+        description: str | None = Field(
             title="Intent Description",
             description="A detailed explanation of the user's intent",
         )
 
     intents = []
     # TODO move to parrellel processing across messages
-    for i, msg in enumerate(messages):
+    #     """Hello fellow travelers! We're venturing to New Zealand from March 5-18th as a couple. We'll primarily be in Auckland visiting my sister, but we're hoping to explore more of the North Island. Since we're big fans of adventure sports and nature, we're thinking of places like the Tongariro Alpine Crossing or maybe Waitomo Caves. However, we're unsure about the best routes or if there are any hidden gems nearby. Any tips or suggestions? Has anyone been around those areas in March? Recommendations for cozy accommodations, local eateries, or any must-visit spots around Auckland would be greatly appreciated. Cheers!"""
+
+    for i, msg in tqdm.tqdm(enumerate(messages)):
         async for intent in extract_data(
-            text=msg, output_type=list[UserIntent], config=Config()
+            text=msg, output_type=UserIntent, config=Config()
         ):
+            print(i, intent)
             intents.append((i, intent))
+
+    # for i, msg in enumerate(messages):
+    #     async for intent in extract_data(
+    #     ):
 
     print(intents)
 
