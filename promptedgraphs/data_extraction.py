@@ -70,14 +70,75 @@ Assume these definitions are written by an expert and follow them closely.\n\n""
             content=SYSTEM_MESSAGE.format(
                 name=name, label_list=label_list, label_definitions=label_definitions
             ),
-        ),
-        ChatMessage(role="user", content=text),
+        )
     ]
+    if text:
+        messages.append(ChatMessage(role="user", content=text))
 
     return messages
 
 
-def create_functions(is_parent_list, schema, name, description, labels, fn_name):
+def remove_nas(data: dict[str, any], nulls: list[str] = None):
+    nulls = nulls or ["==NA==", "NA", "N/A", "n/a", "#N/A", "None", "none"]
+    for k, v in data.items():
+        if isinstance(v, dict):
+            remove_nas(v)
+        elif isinstance(v, list):
+            for i in range(len(v)):
+                if isinstance(v[i], dict):
+                    remove_nas(v[i])
+                elif v[i] in nulls:
+                    v[i] = None
+            # remove empty list items
+            data[k] = [i for i in v if i is not None]
+        elif v in nulls:
+            data[k] = None
+    return data
+
+
+def format_properties(properties, refs=None):
+    refs = refs or {}
+    d = {}
+    for k, v in properties.items():
+        dtypes = None  # reset per loop
+        dtype = v.get("type")
+        if dtype is None and v.get("anyOf"):
+            dtypes = [t for t in v["anyOf"] if t["type"] != "null"]
+            if len(dtypes):
+                dtype = dtypes[0]["type"]
+        d[k] = {"type": dtype or "string"}
+        if d[k]["type"] == "array":
+            d[k][
+                "description"
+            ] = f"{v.get('title','')} - {v.get('description', '')}".strip()
+
+            if reference := v.get("items", {}).get("$ref", "/").split("/")[-1]:
+                v2 = refs[reference]
+            elif dtypes:
+                v2 = dtypes[0].get("items", v)
+            else:
+                v2 = v
+
+            item_type = v2.get("type")
+            if item_type == "object":
+                d[k]["items"] = {
+                    "type": v2.get("type", "object"),
+                    "description": f"{v2.get('title','')} - {v2.get('description', '')}".strip(),
+                    "properties": format_properties(v2.get("properties", {})),
+                    "required": v2.get("required", []),
+                }
+            else:
+                d[k]["items"] = {"type": item_type}
+    return d
+
+
+def create_functions(is_parent_list, schema, fn_name: str = None):
+    """Note the top level cannot be an array, only nested objects can be arrays"""
+    name, description = (
+        schema["title"],
+        schema["description"],
+    )
+    fn_name = fn_name or camelcase_to_words(name).replace(" ", "_").lower()
     if is_parent_list:
         return [
             {
@@ -92,12 +153,9 @@ def create_functions(is_parent_list, schema, name, description, labels, fn_name)
                             "items": {
                                 "type": "object",
                                 "description": description,
-                                "properties": {
-                                    k: {
-                                        "type": v.get("type", "string"),
-                                    }
-                                    for k, v in labels.items()
-                                },
+                                "properties": format_properties(
+                                    schema["properties"], refs=schema.get("$defs", {})
+                                ),
                                 "required": schema.get("required", []),
                             },
                         }
@@ -113,12 +171,9 @@ def create_functions(is_parent_list, schema, name, description, labels, fn_name)
             "description": description,
             "parameters": {
                 "type": "object",
-                "properties": {
-                    k: {
-                        "type": v.get("type", "string"),
-                    }
-                    for k, v in labels.items()
-                },
+                "properties": format_properties(
+                    schema["properties"], refs=schema.get("$defs", {})
+                ),
                 "required": schema.get("required", []),
             },
         }
@@ -130,7 +185,7 @@ async def extract_data(
     output_type: list[BaseModel] | BaseModel,
     config: Config,
     model=GPT_MODEL,
-    temperature=0.2,
+    temperature=0.0,
 ):
     if is_parent_list := str(output_type).lower().startswith("list"):
         assert (
@@ -141,14 +196,10 @@ async def extract_data(
 
     schema = output_type.model_json_schema()
     name = schema["title"]
-    description = schema["description"]
-    labels = schema["properties"]
-    fn_name = camelcase_to_words(name).replace(" ", "_").lower()
+    fn_name = camelcase_to_words(schema["title"]).replace(" ", "_").lower()
 
-    messages = create_messages(text, name, labels)
-    functions = create_functions(
-        is_parent_list, schema, name, description, labels, fn_name
-    )
+    messages = create_messages(text, schema["title"], schema["properties"])
+    functions = create_functions(is_parent_list, schema, fn_name)
 
     count = 0
     payload = ""
@@ -167,10 +218,10 @@ async def extract_data(
                 if is_parent_list:
                     s = json.loads(payload).get(name, [])
                     for data in s[count:]:
-                        yield output_type(**data)
+                        yield output_type(**remove_nas(data))
                 else:
                     data = json.loads(payload)
-                    yield output_type(**data)
+                    yield output_type(**remove_nas(data))
             break
 
         # TODO try catch for malformed json
@@ -195,6 +246,6 @@ async def extract_data(
                 continue
 
             for data in s[count:]:
-                yield output_type(**data)
+                yield output_type(**remove_nas(data))
 
             count = len(s)

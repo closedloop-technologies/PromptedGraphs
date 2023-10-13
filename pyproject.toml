@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "promptedgraphs"
-version = "0.2.0"
+version = "0.2.1"
 description = "From Dataset Labeling to Deployment: The Power of NLP and LLMs Combined."
 authors = ["Sean Kruzel <sean@closedloop.tech>"]
 license = "MIT"
