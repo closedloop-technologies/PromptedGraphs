@@ -189,6 +189,7 @@ async def extract_data(
     model=GPT_MODEL,
     temperature=0.0,
     custom_system_message: str | None = None,
+    force_type: bool = True,
 ):
     if is_parent_list := str(output_type).lower().startswith("list"):
         assert (
@@ -226,10 +227,23 @@ async def extract_data(
                 if is_parent_list:
                     s = json.loads(payload).get(name, [])
                     for data in s[count:]:
-                        yield output_type(**remove_nas(data))
+                        try:
+                            yield output_type(**remove_nas(data))
+                        except Exception as e:
+                            if force_type:
+                                raise e
+                            else:
+                                yield remove_nas(data)
                 else:
                     data = json.loads(payload)
-                    yield output_type(**remove_nas(data))
+                    try:
+                        yield output_type(**remove_nas(data))
+                    except Exception as e:
+                        if force_type:
+                            raise e
+                        else:
+                            yield remove_nas(data)
+
             break
 
         # TODO try catch for malformed json
