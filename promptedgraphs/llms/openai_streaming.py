@@ -8,11 +8,10 @@ from promptedgraphs.config import Config
 from promptedgraphs.llms.openai_token_counter import estimate_tokens
 from promptedgraphs.models import ChatFunction, ChatMessage
 
-GPT_MODEL = "gpt-3.5-turbo-0613"
-GPT_MODEL_BIG_CONTEXT = "gpt-3.5-turbo-16k-0613"
+GPT_MODEL = "gpt-4-1106-preview"
+GPT_MODEL_BIG_CONTEXT = "gpt-4-1106-preview"
 
 
-# @retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(3))
 async def streaming_chat_completion_request(
     messages: list[ChatMessage] | None,
     functions: list[ChatFunction] | None = None,
@@ -45,16 +44,16 @@ async def streaming_chat_completion_request(
 
     token_count_approx = estimate_tokens(json_data, model=model)
 
-    if token_count_approx >= 4_096:
+    if token_count_approx >= 4000:
         model = GPT_MODEL_BIG_CONTEXT
-        json_data["max_tokens"] = 16_384
+        json_data["max_tokens"] = 16_000
         json_data["model"] = model
         json_data["messages"][-1]["content"] = json_data["messages"][-1][
             "content"
         ].strip()[:40_000]
 
     json_data["max_tokens"] = min(
-        max(json_data["max_tokens"] - int(token_count_approx), 200), 16_384
+        max(json_data["max_tokens"] - int(token_count_approx), 200), 16_000
     )
 
     async with AsyncClient(timeout=None) as client:

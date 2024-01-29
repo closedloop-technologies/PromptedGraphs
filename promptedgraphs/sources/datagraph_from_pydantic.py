@@ -61,8 +61,6 @@ def process_file(file_path):
 
     # Things can throw weird errors if multiple definitions of the same name are in the same file
 
-    import networkx as nx
-
     g = nx.MultiDiGraph()
     local_vars = kindofsafe_exec(file_content)
     for name, cls in local_vars.items():

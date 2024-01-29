@@ -172,7 +172,7 @@ async def build_function_schemas(
         content = data.get("choices")[0]["message"]["content"]
         results.extend(extract_code_blocks(content))
 
-    # Append the function signature documenation to the python code block
+    # Append the function signature documentation to the python code block
     docs = f"""# {fn_name}\n\n```python\n{fn_signature}\n\n```"""
     for url, html in external_references.items():
         docs += f"\n\n## Additional documentation loaded from {url}\n\n{html}"
@@ -227,7 +227,7 @@ async def register_function_as_datasource(
             with open(output_dir / f"{fn.__name__}.{suffix}", "w") as f:
                 f.write(fn_schema["content"])
 
-    with open(datasource_registry / "meta.jsonl", "a") as f:
+    with open(output_dir / "meta.jsonl", "a") as f:
         f.write(json.dumps(meta) + "\n")
 
     # Aggregate all the schemas into one file

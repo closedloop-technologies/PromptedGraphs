@@ -36,6 +36,7 @@ from promptedgraphs.llms.openai_streaming import (
     GPT_MODEL,
     streaming_chat_completion_request,
 )
+from promptedgraphs.llms.openai_wrapper import call_default_llm, gpt_fix_json
 from promptedgraphs.models import ChatMessage, EntityReference
 from promptedgraphs.parsers import extract_partial_list
 
@@ -208,3 +209,29 @@ async def extract_entities(
         for entity in _format_entities(s[count:], text):
             yield entity
         count = len(s)
+
+
+def gpt_entity_mentions(
+    text: str,
+    prompt: str,
+    model_name="gpt-3.5-turbo-0613",
+    temperature=0.0,
+    **kwargs,
+):
+    p = prompt.format(text=text, **kwargs)
+    result = call_default_llm(p, temperature=temperature, model_name=model_name)
+    try:
+        data = json.loads(result)
+    except json.JSONDecodeError as error:
+        result = gpt_fix_json(result, str(error))
+        data = json.loads(result)
+    if type(data) == dict:
+        data = [[k, v] for k, v in data.items()]
+
+    data = [tuple(d) for d in data if isinstance(d, (list, tuple)) and len(d) == 2]
+
+    start, end = 0, len(text)
+    return [
+        EntityReference(start=start, end=end, text=ent[1], label=ent[0])
+        for ent in sorted(data, key=lambda x: f"{x[0]}{x[1]}")
+    ]
