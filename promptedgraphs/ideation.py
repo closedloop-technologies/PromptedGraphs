@@ -1,13 +1,8 @@
 import asyncio
-from pydantic import BaseModel, Field
-from promptedgraphs.config import Config
-
-
 import contextlib
 import json
-import re
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from promptedgraphs.config import Config
 from promptedgraphs.data_extraction import (
@@ -86,6 +81,123 @@ def create_messages(
     return messages
 
 
+async def streaming_chat_wrapper(
+    messages,
+    functions,
+    model,
+    config,
+    temperature,
+    output_type,
+    is_parent_list,
+    name,
+):
+    count = 0
+    payload = ""
+    async for msg in streaming_chat_completion_request(
+        messages=messages,
+        functions=functions,
+        model=model,
+        config=config,
+        temperature=temperature,
+    ):
+        if msg.data is None or msg.data == "":
+            continue
+
+        if msg.data == "[DONE]":
+            with contextlib.suppress(json.decoder.JSONDecodeError):
+                if is_parent_list:
+                    s = json.loads(payload).get(name, [])
+                    for data in s[count:]:
+                        yield output_type(**remove_nas(data))
+                else:
+                    data = json.loads(payload)
+                    yield output_type(**remove_nas(data))
+            break
+
+        # TODO try catch for malformed json
+        if msg.event == "error":
+            print("ERROR", msg.data)
+            break
+
+        data = json.loads(msg.data)
+
+        choices = data.get("choices")
+        if choices is None:
+            continue
+
+        delta = choices[0].get("delta")
+
+        # TODO rewrite this to be more robust streaming json parser
+        payload += delta.get("function_call", {}).get("arguments", "")
+
+        if is_parent_list:
+            fn_name = camelcase_to_words(name).replace(" ", "_").lower()
+            s = extract_partial_list(payload, key=fn_name)
+            if s is None or len(s) == 0 or len(s) <= count:
+                continue
+
+            for data in s[count:]:
+                yield output_type(**remove_nas(data))
+
+            count = len(s)
+
+
+# async def async_generator_1():
+#     for i in range(5):
+#         await asyncio.sleep(1)
+#         yield f'Gen1: {i}'
+
+# async def async_generator_2():
+#     for i in range(5):
+#         await asyncio.sleep(2)
+#         yield f'Gen2: {i}'
+
+# async def merge_generators(*generators):
+#     async def generator_as_task(gen):
+#         async for item in gen:
+#             yield item
+
+#     while tasks:
+#         done, tasks = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+#         for task in done:
+#             if task.exception():
+#                 continue
+#             yield task.result()
+
+# async def main():
+#     async for item in merge_generators(async_generator_1(), async_generator_2()):
+
+
+async def parallelize_streaming_chat_wrapper(
+    num_workers,
+    messages,
+    functions,
+    model,
+    config,
+    temperature,
+    output_type,
+    is_parent_list,
+    name,
+):
+    print(f"parallelize_streaming_chat_wrapper {num_workers}")
+    tasks = (
+        streaming_chat_wrapper(
+            messages,
+            functions,
+            model,
+            config,
+            temperature,
+            output_type,
+            is_parent_list,
+            name,
+        )
+        for _ in range(num_workers)
+    )
+    for task in tasks:
+        async for result in task:
+            yield result
+
+
 async def brainstorm(
     text: str,
     n: int = 10,
@@ -124,72 +236,50 @@ async def brainstorm(
 
     schema = output_type.model_json_schema()
     name = schema["title"]
-    fn_name = camelcase_to_words(schema["title"]).replace(" ", "_").lower()
+
+    batch_size = min(batch_size, n)
 
     messages = create_messages(
         text,
-        name=schema["title"],
+        name=name,
         labels=schema["properties"],
-        n=n,
+        n=batch_size,
         positive_examples=positive_examples,
         negative_examples=negative_examples,
     )
-    print(messages[0].content)
-    functions = create_functions(is_parent_list, schema, fn_name)
+    functions = create_functions(
+        is_parent_list,
+        schema,
+        fn_name=camelcase_to_words(name).replace(" ", "_").lower(),
+    )
 
-    count = 0
-    payload = ""
+    if n % batch_size != 0:
+        max_workers = max(1, min(max_workers, n // batch_size))
+    else:
+        max_workers = max(1, min(max_workers, 1 + n // batch_size))
+
     yield_count = 0
-    async for msg in streaming_chat_completion_request(
-        messages=messages,
-        functions=functions,
-        model=model,
-        config=config,
-        temperature=temperature,
-    ):
-        if msg.data is None or msg.data == "":
-            continue
-
-        if msg.data == "[DONE]":
-            with contextlib.suppress(json.decoder.JSONDecodeError):
-                if is_parent_list:
-                    s = json.loads(payload).get(name, [])
-                    for data in s[count:]:
-                        yield output_type(**remove_nas(data))
-                        yield_count += 1
-                else:
-                    data = json.loads(payload)
-                    yield output_type(**remove_nas(data))
-                    yield_count += 1
+    results = parallelize_streaming_chat_wrapper(
+        max_workers,
+        messages,
+        functions,
+        model,
+        config,
+        temperature,
+        output_type,
+        is_parent_list,
+        name,
+    )
+    async for result in results:
+        yield result
+        yield_count += 1
+        if yield_count >= n:
             break
 
-        # TODO try catch for malformed json
-        if msg.event == "error":
-            print("ERROR", msg.data)
-            break
-
-        data = json.loads(msg.data)
-
-        choices = data.get("choices")
-        if choices is None:
-            continue
-
-        delta = choices[0].get("delta")
-
-        # TODO rewrite this to be more robust streaming json parser
-        payload += delta.get("function_call", {}).get("arguments", "")
-
-        if is_parent_list:
-            s = extract_partial_list(payload, key=fn_name)
-            if s is None or len(s) == 0 or len(s) <= count:
-                continue
-
-            for data in s[count:]:
-                yield output_type(**remove_nas(data))
-                yield_count += 1
-
-            count = len(s)
-    print(f"Yielded {yield_count} results")
+    if yield_count < n:
+        print(
+            f"Only generated {yield_count} examples, but {n} were requested. Try increasing the temperature."
+        )
 
 
 class BusinessIdea(BaseModel):
@@ -208,7 +298,12 @@ class BusinessIdea(BaseModel):
 
 async def main():
     async for idea in brainstorm(
-        text=BusinessIdea.__doc__, output_type=list[BusinessIdea], config=Config()
+        text=BusinessIdea.__doc__,
+        n=20,
+        batch_size=5,
+        max_workers=7,
+        output_type=list[BusinessIdea],
+        config=Config(),
     ):
         print(
             f"We help {idea.adj} {idea.target_audience} {idea.action} so they can {idea.benefit}"
