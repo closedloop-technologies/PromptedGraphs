@@ -85,6 +85,48 @@ displacy.render(
 ```
 ![displacy-sentiment-example](./assets/displacy-sentiment-example.png?raw=true)
 
+### Brainstorming Data
+Generate a list of data that fits a given data model.
+
+from [examples/er_reviews.ipynb](https://github.com/closedloop-technologies/PromptedGraphs/blob/main/examples/brainstorming_examples.ipynb)
+
+```python
+from pydantic import BaseModel, Field
+
+from promptedgraphs.config import Config
+from promptedgraphs.ideation import brainstorm
+from promptedgraphs.vis import render_entities
+
+
+class BusinessIdea(BaseModel):
+    """A business idea generated using the Jobs-to-be-done framework
+    For example "We help [adj] [target_audience] [action] so they can [benefit or do something else]"
+    """
+
+    target_audience: str = Field(title="Target Audience")
+    action: str = Field(title="Action")
+    benefit: str = Field(title="Benefit or next action")
+    adj: str | None = Field(
+        title="Adjective",
+        description="Optional adjective describing the target audience's condition",
+    )
+
+
+ideas = []
+async for idea in brainstorm(
+    text=BusinessIdea.__doc__,
+    output_type=list[BusinessIdea],
+    config=Config(),
+    n=10,
+    max_workers=2,
+):
+    ideas.append(idea)
+    render_entities(
+        f"We help {idea.adj} {idea.target_audience} {idea.action} so they can {idea.benefit}",
+        idea,
+    )
+```
+![brainstorm-examples](./assets/brainstorm-examples.png?raw=true)
 
 ### Structured Data Extraction
 

@@ -36,6 +36,7 @@ spacy = "^3.6.1"
 googlemaps = "^4.10.0"
 beautifulsoup4 = "^4.12.2"
 pydantic-settings = "^2.0.3"
+seaborn = "^0.13.2"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.3.0"
