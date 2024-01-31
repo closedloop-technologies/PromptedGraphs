@@ -1,4 +1,5 @@
 # https://github.com/openai/openai-cookbook/blob/60b12dfad1b6e7b32c4a6f1edff3b94c946b467d/examples/How_to_call_functions_with_chat_models.ipynb
+import json
 from collections.abc import AsyncGenerator
 
 from httpx import AsyncClient, ReadTimeout
@@ -8,7 +9,7 @@ from promptedgraphs.config import Config
 from promptedgraphs.llms.openai_token_counter import estimate_tokens
 from promptedgraphs.models import ChatFunction, ChatMessage
 
-GPT_MODEL = "gpt-3.5-turbo-0613"
+GPT_MODEL = "gpt-3.5-turbo-1106"
 GPT_MODEL_BIG_CONTEXT = "gpt-3.5-turbo-16k-0613"
 
 
@@ -21,6 +22,7 @@ async def streaming_chat_completion_request(
     temperature=0.2,
     max_tokens=4000,
     stream=True,
+    timeout=None,
 ) -> AsyncGenerator[bytes, None]:
     assert config and config.openai_api_key is not None, "OpenAI API Key not found"
 
@@ -57,12 +59,21 @@ async def streaming_chat_completion_request(
         max(json_data["max_tokens"] - int(token_count_approx), 200), 16_384
     )
 
-    async with AsyncClient(timeout=None) as client:
+    async with AsyncClient(timeout=timeout) as client:
         try:
             response = await client.post(url, headers=headers, json=json_data)
             if response.status_code != 200:
                 raise ValueError(f"Failed to post to {url}. Response: {response.text}")
-
+            yield ServerSentEvent(
+                data=json.dumps(
+                    {
+                        "usage": {
+                            "prompt_tokens": token_count_approx,
+                            "completion_tokens": 0,
+                        }
+                    }
+                )
+            )
             async for chunk in response.aiter_lines():
                 if chunk.startswith("data:"):
                     yield ServerSentEvent(data=chunk[5:].strip())

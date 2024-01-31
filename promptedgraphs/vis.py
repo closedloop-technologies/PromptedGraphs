@@ -51,10 +51,7 @@ def ensure_entities(
             for k, v in data.items()
             if v in text
         ]
-    elif isinstance(ents[0], EntityReference):
-        return ents
-    else:
-        raise ValueError("ents must be a list of EntityReference, BaseModel or dict")
+    return [e for e in ents if isinstance(e, EntityReference)]
 
 
 def render_entities(

@@ -1,34 +1,41 @@
 import asyncio
 
+from promptedgraphs.config import Config, load_config
+from promptedgraphs.entity_recognition import extract_entities
 
-async def async_generator_1():
-    for i in range(5):
-        await asyncio.sleep(1)
-        yield f"Gen1: {i}"
-
-
-async def async_generator_2():
-    for i in range(5):
-        await asyncio.sleep(2)
-        yield f"Gen2: {i}"
+_ = load_config()
 
 
-async def merge_generators(*generators):
-    tasks = {asyncio.create_task(gen()): gen for gen in generators}
-    while tasks:
-        done, _ = await asyncio.wait(tasks.keys(), return_when=asyncio.FIRST_COMPLETED)
-        for task in done:
-            if task.exception():
-                continue
-            yield task.result()
-            # Restart the task
-            gen = tasks.pop(task)
-            tasks[asyncio.create_task(gen())] = gen
+async def label_sentiment(text_of_reviews):
+    labels = {
+        "POSITIVE": "A postive review of a product or service.",
+        "NEGATIVE": "A negative review of a product or service.",
+        "NEUTRAL": "A neutral review of a product or service.",
+    }
+
+    ents = []
+    async for msg in extract_entities(
+        name="sentiment",
+        description="Sentiment Analysis of Customer Reviews",
+        text=text_of_reviews,
+        labels=labels,
+        config=Config(),
+        include_reason=False,
+    ):
+        ents.append(msg)
+    return ents
+
+
+text_of_reviews = """
+1. "I absolutely love this product. It's been a game changer!"
+2. "The service was quite poor and the staff was rude."
+3. "The item is okay. Nothing special, but it gets the job done."
+""".strip()
 
 
 async def main():
-    async for item in merge_generators(async_generator_1, async_generator_2):
-        print(item)
+    print(await label_sentiment(text_of_reviews))
 
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())

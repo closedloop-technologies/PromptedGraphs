@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "promptedgraphs"
-version = "0.3.0"
+version = "0.3.1"
 description = "From Dataset Labeling to Deployment: The Power of NLP and LLMs Combined."
 authors = ["Sean Kruzel <sean@closedloop.tech>"]
 license = "MIT"
@@ -37,6 +37,8 @@ googlemaps = "^4.10.0"
 beautifulsoup4 = "^4.12.2"
 pydantic-settings = "^2.0.3"
 seaborn = "^0.13.2"
+nltk = "^3.8.1"
+transformers = "^4.37.2"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.3.0"
