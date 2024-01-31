@@ -11,6 +11,49 @@ def rgb_to_hex(rgb):
     )
 
 
+def get_fields(ents: list[EntityReference] | dict | BaseModel):
+    if hasattr(ents, "model_dump"):
+        data = ents.model_dump()
+        return sorted(data.keys())
+    elif isinstance(ents, dict):
+        return sorted(ents.keys())
+    elif isinstance(ents[0], EntityReference):
+        return sorted({e.label for e in ents})
+    else:
+        raise ValueError("ents must be a list of EntityReference, BaseModel or dict")
+
+
+def get_colors(fields: list[str], color_palette: list[float] = None):
+    palette = color_palette or sns.color_palette("Set2", 8)
+    return {f: rgb_to_hex(color) for f, color in zip(list(fields), palette)}
+
+
+def ensure_entities(
+    ents: list[EntityReference] | dict | BaseModel, text: str
+) -> list[EntityReference]:
+    if ents is None:
+        return None
+    elif hasattr(ents, "model_dump"):
+        data = ents.model_dump()
+        return [
+            EntityReference(
+                start=text.find(v), end=text.find(v) + len(v), label=k, text=v
+            )
+            for k, v in data.items()
+            if v in text
+        ]
+    elif isinstance(ents, dict):
+        data = ents
+        return [
+            EntityReference(
+                start=text.find(v), end=text.find(v) + len(v), label=k, text=v
+            )
+            for k, v in data.items()
+            if v in text
+        ]
+    return [e for e in ents if isinstance(e, EntityReference)]
+
+
 def render_entities(
     text: str,
     ents: BaseModel | list[EntityReference] | dict = None,
@@ -25,30 +68,10 @@ def render_entities(
         return displacy.render(
             {"text": text}, style="ent", jupyter=jupyter, manual=True
         )
-    elif hasattr(ents, "model_dump"):
-        data = ents.model_dump()
-        fields = sorted(data.keys())
-        ents = [
-            EntityReference(
-                start=text.find(v), end=text.find(v) + len(v), label=k, text=v
-            )
-            for k, v in data.items()
-            if v in text
-        ]
-    elif isinstance(ents, dict):
-        data = ents
-        fields = sorted(data.keys())
-        ents = [
-            EntityReference(
-                start=text.find(v), end=text.find(v) + len(v), label=k, text=v
-            )
-            for k, v in data.items()
-            if v in text
-        ]
-    elif isinstance(ents[0], EntityReference):
-        fields = sorted({e.label for e in ents})
-    else:
-        raise ValueError("ents must be a list of EntityReference, BaseModel or dict")
+
+    ents = ensure_entities(ents, text)
+    fields = get_fields(ents)
+    color_dict = color_dict or get_colors(fields, color_palette)
 
     # Build colors
     if color_dict is None:
