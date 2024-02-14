@@ -17,7 +17,7 @@ classifiers = [
 "Bug Tracker" = "https://github.com/closedLoop-technologies/promptedgraphs/issues"
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = ">=3.10,<3.13"
 pre-commit = "^3.3.1"
 twine = "^4.0.2"
 gcloud = "^0.18.3"
@@ -39,6 +39,9 @@ pydantic-settings = "^2.0.3"
 seaborn = "^0.13.2"
 nltk = "^3.8.1"
 transformers = "^4.37.2"
+networkx = "^3.1"
+matplotlib = "^3.8.0"
+pandas = "^2.1.1"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.3.0"
