@@ -1,4 +1,5 @@
 """Loads the configuration file for the QuantReady package."""
+
 # Load the configuration file
 import os
 from dataclasses import dataclass, field
@@ -24,6 +25,7 @@ class Config:
     ogtags_api_key: str | None = field(
         default_factory=lambda: os.getenv("OGTAGS_API_KEY")
     )
+    usda_api_key: str | None = field(default_factory=lambda: os.getenv("USDA_API_KEY"))
 
 
 def load_config() -> Config:
