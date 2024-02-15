@@ -152,8 +152,6 @@ async def parallelize_streaming_chat_wrapper(
     is_parent_list,
     name,
 ):
-    print(f"parallelize_streaming_chat_wrapper {num_workers}")
-
     async def collect_results(generator):
         results = []
         async for item in generator:
