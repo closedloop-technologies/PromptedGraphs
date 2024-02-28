@@ -31,11 +31,14 @@ import contextlib
 import json
 import re
 
+import tiktoken
+
 from promptedgraphs.config import Config
 from promptedgraphs.llms.openai_streaming import (
     GPT_MODEL,
     streaming_chat_completion_request,
 )
+from promptedgraphs.llms.openai_token_counter import Usage
 from promptedgraphs.models import ChatMessage, EntityReference
 from promptedgraphs.parsers import extract_partial_list
 
@@ -172,6 +175,8 @@ async def extract_entities(
 
     count = 0
     payload = ""
+    usage = Usage(model=model)
+    usage.start()
     async for msg in streaming_chat_completion_request(
         messages=messages,
         functions=functions,
@@ -183,6 +188,11 @@ async def extract_entities(
             continue
 
         if msg.data == "[DONE]":
+            try:
+                encoding = tiktoken.encoding_for_model(model)
+            except KeyError:
+                encoding = tiktoken.get_encoding("cl100k_base")
+            usage.completion_tokens += len(encoding.encode(payload))
             with contextlib.suppress(json.decoder.JSONDecodeError):
                 s = json.loads(payload).get(name, [])
                 for entity in _format_entities(s[count:], text):
@@ -192,6 +202,11 @@ async def extract_entities(
 
         # TODO try catch for malformed json
         data = json.loads(msg.data)
+
+        msg_usage = data.get("usage")
+        if msg_usage is not None:
+            usage.prompt_tokens += msg_usage.get("prompt_tokens", 0)
+            usage.completion_tokens += msg_usage.get("completion_tokens", 0)
 
         choices = data.get("choices")
         if choices is None:
@@ -208,3 +223,6 @@ async def extract_entities(
         for entity in _format_entities(s[count:], text):
             yield entity
         count = len(s)
+
+    usage.end()  # calculates cost and time
+    yield usage
