@@ -1,0 +1,172 @@
+classDiagram
+    class1 : public.Feedback
+    class2 : public.Game
+    class3 : public.PropBet
+    class4 : public.PropBetOdds
+    class5 : public.PropBetType
+    class6 : public.PlayerIdMap
+    class7 : public.User
+    class8 : public.Price
+    class9 : public.Subscription
+    class10 : public.Session
+    class11 : public.Message
+    class12 : public.Plan
+    class13 : public.PlanLimit
+    class14 : public.TeamIdMap
+    class15 : public.League
+    class16 : public.Player
+    class17 : public.PlayerTeamMap
+    class18 : public.Sportsbook
+    class19 : public.Team
+    class20 : public.Forecasts
+    class21 : public.Injuries
+    class7 : +public.User.email
+    class16 : +public.Player.aliases
+    class2 : +public.Game.awayTeamId
+    class19 : +public.Team.team_id
+    class3 : +public.PropBet.teamId
+    class8 : +public.Price.currency
+    class9 : +public.Subscription.currentPeriodStart
+    class10 : +public.Session.id
+    class8 : +public.Price.amount
+    class15 : +public.League.name
+    class12 : +public.Plan.name
+    class9 : +public.Subscription.currentPeriodEnd
+    class4 : +public.PropBetOdds.condition
+    class1 : +public.Feedback.feedback_type
+    class2 : +public.Game.homeTeamId
+    class5 : +public.PropBetType.aliases
+    class3 : +public.PropBet.id
+    class4 : +public.PropBetOdds.novig_implied_pct
+    class10 : +public.Session.updatedAt
+    class11 : +public.Message.sessionId
+    class12 : +public.Plan.active
+    class1 : +public.Feedback.on_page_context
+    class19 : +public.Team.name
+    class7 : +public.User.name
+    class12 : +public.Plan.description
+    class1 : +public.Feedback.id
+    class8 : +public.Price.planId
+    class7 : +public.User.customerId
+    class5 : +public.PropBetType.id
+    class19 : +public.Team.leagueId
+    class9 : +public.Subscription.createdAt
+    class9 : +public.Subscription.priceId
+    class14 : +public.TeamIdMap.sourceId
+    class17 : +public.PlayerTeamMap.playerId
+    class4 : +public.PropBetOdds.over_american_odds
+    class11 : +public.Message.sender
+    class8 : +public.Price.createdAt
+    class14 : +public.TeamIdMap.teamId
+    class9 : +public.Subscription.planId
+    class18 : +public.Sportsbook.name
+    class4 : +public.PropBetOdds.id
+    class13 : +public.PlanLimit.maxClients
+    class2 : +public.Game.period
+    class8 : +public.Price.updatedAt
+    class10 : +public.Session.itineraryId
+    class16 : +public.Player.id
+    class2 : +public.Game.season
+    class21 : +public.Injuries.text
+    class20 : +public.Forecasts.updatedAt
+    class1 : +public.Feedback.comment
+    class21 : +public.Injuries.updatedAt
+    class11 : +public.Message.id
+    class20 : +public.Forecasts.text
+    class6 : +public.PlayerIdMap.id
+    class4 : +public.PropBetOdds.line
+    class2 : +public.Game.game_id
+    class7 : +public.User.role
+    class4 : +public.PropBetOdds.over_fractional_odds
+    class17 : +public.PlayerTeamMap.teamId
+    class18 : +public.Sportsbook.country
+    class13 : +public.PlanLimit.id
+    class4 : +public.PropBetOdds.under_fractional_odds
+    class14 : +public.TeamIdMap.source
+    class18 : +public.Sportsbook.url
+    class17 : +public.PlayerTeamMap.startedAt
+    class16 : +public.Player.squad
+    class9 : +public.Subscription.userId
+    class3 : +public.PropBet.playerId
+    class10 : +public.Session.userId
+    class1 : +public.Feedback.datetime
+    class8 : +public.Price.id
+    class4 : +public.PropBetOdds.over_decimal_odds
+    class5 : +public.PropBetType.name
+    class10 : +public.Session.createdAt
+    class12 : +public.Plan.createdAt
+    class7 : +public.User.createdAt
+    class4 : +public.PropBetOdds.under_decimal_odds
+    class19 : +public.Team.aliases
+    class9 : +public.Subscription.status
+    class11 : +public.Message.createdAt
+    class3 : +public.PropBet.gameId
+    class8 : +public.Price.interval
+    class18 : +public.Sportsbook.logoUrl
+    class5 : +public.PropBetType.description
+    class12 : +public.Plan.id
+    class15 : +public.League.id
+    class4 : +public.PropBetOdds.under_american_odds
+    class10 : +public.Session.name
+    class1 : +public.Feedback.user_id
+    class19 : +public.Team.id
+    class7 : +public.User.id
+    class1 : +public.Feedback.feedback_id
+    class11 : +public.Message.userId
+    class4 : +public.PropBetOdds.under_implied_pct
+    class4 : +public.PropBetOdds.propBetId
+    class9 : +public.Subscription.id
+    class4 : +public.PropBetOdds.sportsbookId
+    class13 : +public.PlanLimit.planId
+    class14 : +public.TeamIdMap.id
+    class9 : +public.Subscription.cancelAtPeriodEnd
+    class11 : +public.Message.type
+    class18 : +public.Sportsbook.state
+    class2 : +public.Game.id
+    class6 : +public.PlayerIdMap.source
+    class21 : +public.Injuries.id
+    class8 : +public.Price.active
+    class17 : +public.PlayerTeamMap.endedAt
+    class2 : +public.Game.location
+    class16 : +public.Player.position
+    class7 : +public.User.updatedAt
+    class6 : +public.PlayerIdMap.sourceId
+    class9 : +public.Subscription.interval
+    class11 : +public.Message.content
+    class20 : +public.Forecasts.id
+    class6 : +public.PlayerIdMap.playerId
+    class3 : +public.PropBet.betTypeId
+    class11 : +public.Message.payload
+    class1 : +public.Feedback.user_agent
+    class4 : +public.PropBetOdds.over_implied_pct
+    class12 : +public.Plan.updatedAt
+    class1 : +public.Feedback.page_url
+    class2 : +public.Game.week
+    class13 : +public.PlanLimit.maxAgents
+    class18 : +public.Sportsbook.id
+    class4 : +public.PropBetOdds.updatedAt
+    class9 : +public.Subscription.updatedAt
+    class13 : +public.PlanLimit.maxTrips
+    class17 : +public.PlayerTeamMap.id
+    class2 --> class19 : FK
+    class3 --> class19 : FK
+    class2 --> class19 : FK
+    class11 --> class10 : FK
+    class8 --> class12 : FK
+    class19 --> class15 : FK
+    class9 --> class8 : FK
+    class17 --> class16 : FK
+    class14 --> class19 : FK
+    class9 --> class12 : FK
+    class17 --> class19 : FK
+    class9 --> class7 : FK
+    class3 --> class16 : FK
+    class10 --> class7 : FK
+    class3 --> class2 : FK
+    class1 --> class7 : FK
+    class11 --> class7 : FK
+    class4 --> class3 : FK
+    class4 --> class18 : FK
+    class13 --> class12 : FK
+    class6 --> class16 : FK
+    class3 --> class5 : FK
