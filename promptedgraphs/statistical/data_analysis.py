@@ -312,8 +312,11 @@ if __name__ == "__main__":
         data = pd.DataFrame(json.loads(line) for line in f.readlines())
 
     # Fit the data to various distributions
-    x = data["age"].dropna().values
-    dists = fit_distribution(x)
+    c = "age"
+    c = "entry_year"
+    c = "draft_number"
+    x = data[c].dropna().values
+    dists = fit_distribution(x, discrete_or_continuous="continuous", max_workers=4)
 
     df = pd.DataFrame(dists).T
     top_dists = df.loc[df["KS-Test"] < 0.05]
@@ -321,7 +324,5 @@ if __name__ == "__main__":
         print(top_dists)
     plot_fitted(x, top_dists, top_n=len(top_dists))
     weights = get_posterior_weights(x, top_dists)
-    weights = get_posterior_weights(x, df.head(50))
     print(top_dists.join(pd.Series(weights, name="Posterior Weight")))
-
     print(dists)
