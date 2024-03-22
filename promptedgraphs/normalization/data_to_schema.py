@@ -10,7 +10,7 @@ from pydantic import BaseModel, EmailStr, Field
 
 from promptedgraphs import __version__ as version
 from promptedgraphs.llms.chat import Chat
-
+from string import Template
 # from openai import
 
 SYSTEM_MESSAGE = """
@@ -20,40 +20,27 @@ If it is a 'value_error' only return the corrected value.
 If the corrected value is an object, return it in json format otherwise return just the value with no explanation.
 """
 
-MESSAGE_TEMPLATE = """
-# Validation Error: {{error_type}}
-{{error_msg}}
+MESSAGE_TEMPLATE = Template("""
+# Validation Error: $error_type
+$error_msg
 
 ## Required schema
 ```
-{{schema}}
+$schema
 ```
 
 ## Object
 ```
-{{obj}}
+$obj
 ```
-"""
+""")
 
 
 async def correct_value_error(
     obj: dict, schema: dict, error_type: str, error_msg: str
 ) -> Any:
     """Corrects a value error in a data object."""
-    msg = """
-# Validation Error: {error_type}
-{error_msg}
-
-## Required schema
-```
-{schema}
-```
-
-## Object
-```
-{obj}
-```
-""".format(
+    msg = MESSAGE_TEMPLATE.substitute(
         obj=json.dumps(obj, indent=4),
         schema=json.dumps(schema, indent=4),
         error_type=error_type,
@@ -147,9 +134,10 @@ async def update_data_object(
 ):
     """Updates the data object with error information."""
     print(f"Updating data object with error: {errors}")
+    corrections = []
     for error in errors():
-        if error["type"] not in {"value_error", "string_type"}:
-            raise ValueError(f"Error type not supported: {error['type']}")
+        # if error["type"] not in {"value_error", "string_type"}:
+        #     raise ValueError(f"Error type not supported: {error['type']}")
         old_value = get_sub_object(data_object, loc=error["loc"])
         new_value = await correct_value_error(
             old_value,
@@ -163,7 +151,8 @@ async def update_data_object(
             old_value=old_value,
             loc=error["loc"],
         )
-    return data_object
+        corrections.append((error["loc"], error['type'], error['msg'], old_value, new_value))
+    return data_object, corrections
 
 
 async def data_to_schema(
@@ -197,15 +186,22 @@ async def data_to_schema(
     if not coerce:
         return data_model(**data_object)
 
+    corrections = []
     while retry_count > 0:
         try:
+            if len(corrections):
+                print("Coercing data with corrections")
+                for c in corrections:
+                    print(f"Correcting {c[0]} with {c[1]}: {c[2]} - {c[3]} -> {c[4]}")
             return data_model(**data_object)
         except Exception as e:
             traceback.format_exc()
             print(f"Error coercing data to schema: {e}")
-            data_object = await update_data_object(
+            data_object, new_corrections = await update_data_object(
                 data_object, schema_spec, errors=e.errors
             )
+            if new_corrections:
+                corrections.extend(new_corrections)
         retry_count -= 1
 
     raise ValueError("Failed to coerce data to schema.")
@@ -214,7 +210,7 @@ async def data_to_schema(
 async def example():
     data = {
         "name": "John Doe",
-        "age": "25",
+        "age": "-1",
         "email": "john.doe@gmail",
     }
     #     },
