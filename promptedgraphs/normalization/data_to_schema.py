@@ -12,6 +12,9 @@ from promptedgraphs import __version__ as version
 from promptedgraphs.llms.chat import Chat
 from string import Template
 # from openai import
+from logging import getLogger
+
+logger = getLogger(__name__)
 
 SYSTEM_MESSAGE = """
 We are a data entry system tasked with properly formatting data based on a provided schema.  You will be given data that does not conform to the required schema and you are tasked with lightly editing the object to conform with the provided schema.
@@ -40,8 +43,9 @@ async def correct_value_error(
     obj: dict, schema: dict, error_type: str, error_msg: str
 ) -> Any:
     """Corrects a value error in a data object."""
+    obj_str = json.dumps(obj, indent=4)
     msg = MESSAGE_TEMPLATE.substitute(
-        obj=json.dumps(obj, indent=4),
+        obj=obj_str,
         schema=json.dumps(schema, indent=4),
         error_type=error_type,
         error_msg=error_msg,
@@ -53,7 +57,7 @@ async def correct_value_error(
             {"role": "system", "content": msg},
         ],
         **{
-            "max_tokens": 1000,
+            "max_tokens": min(1024*4, len(obj_str)),
             "temperature": 0.0,
             "response_format": {"type": "json_object"},
         },
@@ -133,7 +137,7 @@ async def update_data_object(
     data_object: dict, schema_spec: dict, errors: list[str] = None
 ):
     """Updates the data object with error information."""
-    print(f"Updating data object with error: {errors}")
+    logger.debug(f"Updating data object with error: {errors}")
     corrections = []
     for error in errors():
         # if error["type"] not in {"value_error", "string_type"}:
@@ -179,8 +183,7 @@ async def data_to_schema(
             for obj in data_object
         ]
     if schema_spec and not data_model:
-        data_model, data_model_code = schema_to_data_model(schema_spec)
-        print(data_model_code)
+        data_model, _ = schema_to_data_model(schema_spec)
     if schema_spec is None:
         schema_spec = data_model_to_schema(data_model)
     if not coerce:
@@ -190,13 +193,12 @@ async def data_to_schema(
     while retry_count > 0:
         try:
             if len(corrections):
-                print("Coercing data with corrections")
+                logger.info(f"Coercing data with {len(corrections)}corrections")
                 for c in corrections:
-                    print(f"Correcting {c[0]} with {c[1]}: {c[2]} - {c[3]} -> {c[4]}")
+                    logger.info(f"Correcting {c[0]} with {c[1]}: {c[2]} - {c[3]} -> {c[4]}")
             return data_model(**data_object)
         except Exception as e:
             traceback.format_exc()
-            print(f"Error coercing data to schema: {e}")
             data_object, new_corrections = await update_data_object(
                 data_object, schema_spec, errors=e.errors
             )
@@ -210,7 +212,7 @@ async def data_to_schema(
 async def example():
     data = {
         "name": "John Doe",
-        "age": "-1",
+        "age": "10",
         "email": "john.doe@gmail",
     }
     #     },
