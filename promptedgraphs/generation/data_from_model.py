@@ -1,6 +1,7 @@
 import asyncio
 import contextlib
 import json
+from typing import AsyncGenerator
 
 from pydantic import BaseModel, Field
 
@@ -16,6 +17,7 @@ from promptedgraphs.llms.openai_streaming import (
     streaming_chat_completion_request,
 )
 from promptedgraphs.models import ChatMessage
+from promptedgraphs.normalization.data_to_schema import data_model_to_schema
 from promptedgraphs.parsers import extract_partial_list
 
 BRAINSTORM_SYSTEM_MESSAGE = """
@@ -27,6 +29,16 @@ Generate {count} examples of objects that fit the following fields: {label_list}
 {positive_examples}
 
 {negative_examples}
+
+## Example Response
+For brainstorming peoples names we might return
+
+```json
+[
+    { "first": "John", "last": "Doe"},
+    { "first": "Mary", "last": "Sue"}
+]
+```
 """
 
 
@@ -38,6 +50,7 @@ def create_messages(
     positive_examples=None,
     negative_examples=None,
     custom_system_message=None,
+    schema: dict|None=None,
     **kwargs,
 ):
     messages = []
@@ -61,12 +74,13 @@ def create_messages(
             label_list=label_list,
             label_definitions=label_definitions,
             count=n,
-            positive_examples="Good Examples:\n{positive_examples}\n"
+            positive_examples=f"## Good Examples:\n{positive_examples}\n"
             if positive_examples
             else "",
-            negative_examples="Bad Examples:\n{negative_examples}\n"
+            negative_examples=f"## Bad Examples:\n{negative_examples}\n"
             if negative_examples
             else "",
+            schema=f"## Required schema\n```\n{json.dumps(schema, indent=4)}\n```\n" if schema else ""
             **kwargs,
         )
         messages.append(
@@ -193,7 +207,7 @@ async def _brainstorm(
     max_workers: int = 5,
     model: str = GPT_MODEL,
     config: Config = None,
-) -> list[BaseModel] | list[str]:
+) -> AsyncGenerator[BaseModel,BaseModel] | AsyncGenerator[str,str]:
     """Generate ideas using a text prompt"""
     config = config or Config()
     positive_examples = positive_examples or []
@@ -207,7 +221,7 @@ async def _brainstorm(
         output_type = output_type.__args__[0]
     assert issubclass(output_type, BaseModel), "output_type must be a Pydantic model"
 
-    schema = output_type.model_json_schema()
+    schema = data_model_to_schema(output_type)
     name = schema["title"]
 
     batch_size = min(batch_size, n)
@@ -219,6 +233,7 @@ async def _brainstorm(
         n=batch_size,
         positive_examples=positive_examples,
         negative_examples=negative_examples,
+        schema=schema
     )
     functions = create_functions(
         is_parent_list,
@@ -262,7 +277,7 @@ async def _brainstorm(
             break
 
 
-async def brainstorm(
+async def generate(
     text: str,
     n: int = 10,
     temperature: float = 0.2,
@@ -273,7 +288,7 @@ async def brainstorm(
     max_workers: int = 5,
     model: str = GPT_MODEL,
     config: Config = None,
-) -> list[BaseModel] | list[str]:
+) -> AsyncGenerator[BaseModel,BaseModel] | AsyncGenerator[str,str]:
     yield_count = 0
     while yield_count < n:
         new_yield_count = 0
@@ -299,15 +314,30 @@ async def brainstorm(
             break
 
 
-class BusinessIdea(BaseModel):
-    """A business idea generated using the Jobs-to-be-done framework
-    For example "We help [adj] [target_audience] do [action] so they can [benefit or do something else]"
-    """
 
-    target_audience: str = Field(title="Target Audience")
-    action: str = Field(title="Action")
-    benefit: str = Field(title="Benefit or next action")
-    adj: str | None = Field(
-        title="Adjective",
-        description="Optional adjective describing the target audience's condition",
+async def example():
+    class BusinessIdea(BaseModel):
+        """A business idea generated using the Jobs-to-be-done framework
+        For example "We help [adj] [target_audience] do [action] so they can [benefit or do something else]"
+        """
+
+        target_audience: str = Field(title="Target Audience")
+        action: str = Field(title="Action")
+        benefit: str = Field(title="Benefit or next action")
+        adj: str | None = Field(
+            title="Adjective",
+            description="Optional adjective describing the target audience's condition",
+        )
+    ideas = generate(
+        text="Generate 10 unique business ideas for a new startup in scuba diving sector",
+        n=10,
+        output_type=BusinessIdea,
+        temperature=0.6,
+        model=GPT_MODEL
     )
+    from pprint import pprint
+    async for idea in ideas:
+        pprint(list(idea))
+
+if __name__ == "__main__":
+    asyncio.run(example())

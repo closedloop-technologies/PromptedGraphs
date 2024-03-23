@@ -9,8 +9,9 @@ from promptedgraphs.config import Config
 from promptedgraphs.llms.openai_token_counter import estimate_tokens
 from promptedgraphs.models import ChatFunction, ChatMessage
 
-GPT_MODEL = "gpt-3.5-turbo-1106"
-GPT_MODEL_BIG_CONTEXT = "gpt-3.5-turbo-16k-0613"
+from promptedgraphs.llms.openai_chat import LanguageModel
+GPT_MODEL = LanguageModel.GPT35_turbo.value
+GPT_MODEL_BIG_CONTEXT = LanguageModel.GPT35_turbo.value
 
 
 # @retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(3))
