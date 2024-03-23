@@ -6,10 +6,10 @@ from httpx import AsyncClient, ReadTimeout
 from sse_starlette import ServerSentEvent
 
 from promptedgraphs.config import Config
+from promptedgraphs.llms.openai_chat import LanguageModel
 from promptedgraphs.llms.openai_token_counter import estimate_tokens
 from promptedgraphs.models import ChatFunction, ChatMessage
 
-from promptedgraphs.llms.openai_chat import LanguageModel
 GPT_MODEL = LanguageModel.GPT35_turbo.value
 GPT_MODEL_BIG_CONTEXT = LanguageModel.GPT35_turbo.value
 

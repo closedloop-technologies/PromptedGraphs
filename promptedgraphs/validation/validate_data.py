@@ -23,7 +23,7 @@ def validate_data(
             data_object=data_object,
             schema_spec=schema_spec,
             data_model=data_model,
-            coerce= False
+            coerce=False,
         )
         return True
     except ValueError:

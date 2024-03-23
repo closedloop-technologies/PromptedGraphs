@@ -1,7 +1,11 @@
 import asyncio
 import json
 import tempfile
+
+# from openai import
+from logging import getLogger
 from pathlib import Path
+from string import Template
 from typing import Any
 
 import datamodel_code_generator as dcg
@@ -9,9 +13,6 @@ from pydantic import BaseModel, EmailStr, Field, RootModel
 
 from promptedgraphs import __version__ as version
 from promptedgraphs.llms.chat import Chat
-from string import Template
-# from openai import
-from logging import getLogger
 
 logger = getLogger(__name__)
 
@@ -22,7 +23,8 @@ If it is a 'value_error' only return the corrected value.
 If the corrected value is an object, return it in json format otherwise return just the value with no explanation.
 """
 
-MESSAGE_TEMPLATE = Template("""
+MESSAGE_TEMPLATE = Template(
+    """
 # Validation Error: $error_type
 $error_msg
 
@@ -35,7 +37,8 @@ $schema
 ```
 $obj
 ```
-""")
+"""
+)
 
 
 async def correct_value_error(
@@ -106,15 +109,10 @@ def set_data_object_value(
 
 def data_model_to_schema(data_model: list[BaseModel] | BaseModel) -> dict:
     """Converts a Pydantic model to a JSON schema."""
-    if isinstance(data_model, list) or str(data_model).startswith('list['):
+    if isinstance(data_model, list) or str(data_model).startswith("list["):
         x = data_model.__args__[0]
-        name = x.model_json_schema().get('title', "DataModel")
+        name = x.model_json_schema().get("title", "DataModel")
         return RootModel[list[x]].model_json_schema()
-        class ParentModel(BaseModel):
-            __name__: str = f"{name}List"
-            __root__: x
-
-        return ParentModel.model_json_schema()
     return data_model.model_json_schema()
 
 
@@ -146,7 +144,9 @@ def schema_to_data_model(schema_spec: dict) -> tuple[BaseModel, str]:
     # Get the constucted object from the model code in the exec environment
     exec_variable_scope = {}
     logger.warning(f"Executing generated data model code from datamodel_code_generator")
-    exec(compile(model_code, filename="data_model.py", mode="exec"), exec_variable_scope)
+    exec(
+        compile(model_code, filename="data_model.py", mode="exec"), exec_variable_scope
+    )
     return exec_variable_scope[class_name], model_code
 
 
@@ -172,7 +172,9 @@ async def update_data_object(
             old_value=old_value,
             loc=error["loc"],
         )
-        corrections.append((error["loc"], error['type'], error['msg'], old_value, new_value))
+        corrections.append(
+            (error["loc"], error["type"], error["msg"], old_value, new_value)
+        )
     return data_object, corrections
 
 
@@ -213,7 +215,9 @@ async def data_to_schema(
             if len(corrections):
                 logger.info(f"Coercing data with {len(corrections)}corrections")
                 for c in corrections:
-                    logger.info(f"Correcting {c[0]} with {c[1]}: {c[2]} - {c[3]} -> {c[4]}")
+                    logger.info(
+                        f"Correcting {c[0]} with {c[1]}: {c[2]} - {c[3]} -> {c[4]}"
+                    )
             return data_model(**data_object)
         except Exception as e:
             data_object, new_corrections = await update_data_object(
