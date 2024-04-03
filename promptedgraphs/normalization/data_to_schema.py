@@ -1,8 +1,9 @@
+from pathlib import Path
+
 import asyncio
 import json
 import tempfile
 
-# from openai import
 from logging import getLogger
 from pathlib import Path
 from string import Template
@@ -12,6 +13,7 @@ import datamodel_code_generator as dcg
 from pydantic import BaseModel, EmailStr, Field, RootModel
 
 from promptedgraphs import __version__ as version
+from promptedgraphs.code_execution.safer_python_exec import safer_exec
 from promptedgraphs.llms.chat import Chat
 
 logger = getLogger(__name__)
@@ -140,13 +142,8 @@ def schema_to_data_model(schema_spec: dict) -> tuple[BaseModel, str]:
     model_code = Path(output_file).read_text()
     output_file.unlink()  # Delete the temporary file
 
-    # TODO a more safe exec environment
     # Get the constucted object from the model code in the exec environment
-    exec_variable_scope = {}
-    logger.warning(f"Executing generated data model code from datamodel_code_generator")
-    exec(
-        compile(model_code, filename="data_model.py", mode="exec"), exec_variable_scope
-    )
+    exec_variable_scope = safer_exec(model_code)
     return exec_variable_scope[class_name], model_code
 
 
