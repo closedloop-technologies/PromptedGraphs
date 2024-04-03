@@ -30,7 +30,7 @@ def schema_from_data(data_samples: List[Dict[str, Any]]) -> Dict[str, Any]:
             else:
                 schema["properties"][key] = infer_type(value)
 
-    schema["required"] = list(required_keys)
+    schema["required"] = sorted(required_keys)
 
     return schema
 
@@ -65,7 +65,7 @@ def infer_type(value: Any) -> Dict[str, Any]:
         for key, val in value.items():
             properties[key] = infer_type(val)
             required.append(key)
-        return {"type": "object", "properties": properties, "required": required}
+        return {"type": "object", "properties": properties}
     else:
         return {}
 
@@ -87,14 +87,7 @@ def merge_types(type1: Dict[str, Any], type2: Dict[str, Any]) -> Dict[str, Any]:
             **type1.get("properties", {}),
             **type2.get("properties", {}),
         }
-        merged_required = list(
-            set(type1.get("required", [])) | set(type2.get("required", []))
-        )
-        return {
-            "type": "object",
-            "properties": merged_properties,
-            "required": merged_required,
-        }
+        return {"type": "object", "properties": merged_properties}
     elif type1["type"] == "array":
         merged_items = merge_types(type1["items"], type2["items"])
         return {"type": "array", "items": merged_items}
