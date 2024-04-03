@@ -7,9 +7,9 @@ import tqdm
 from pydantic import BaseModel, Field
 
 from promptedgraphs.config import Config
+from promptedgraphs.generation.schema_from_model import schema_from_model
 from promptedgraphs.llms.chat import Chat
 from promptedgraphs.llms.openai_chat import LanguageModel
-from promptedgraphs.normalization.data_to_schema import data_model_to_schema
 
 logger = getLogger(__name__)
 
@@ -101,7 +101,7 @@ async def _brainstorm(
     class Examples(BaseModel):
         items: list[output_type]
 
-    schema = data_model_to_schema(Examples)
+    schema = schema_from_model(Examples)
 
     batch_size = min(batch_size, n)
 
@@ -212,6 +212,7 @@ async def example():
     ):
         ideas.append(idea)
         ittr.update(1)
+    print(f"{len(ideas)} {BusinessIdea.__name__} ideas generated")
     return ideas
 
 

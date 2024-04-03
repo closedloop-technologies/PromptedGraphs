@@ -1,9 +1,6 @@
-from pathlib import Path
-
 import asyncio
 import json
 import tempfile
-
 from logging import getLogger
 from pathlib import Path
 from string import Template
@@ -14,6 +11,7 @@ from pydantic import BaseModel, EmailStr, Field, RootModel
 
 from promptedgraphs import __version__ as version
 from promptedgraphs.code_execution.safer_python_exec import safer_exec
+from promptedgraphs.generation.schema_from_model import schema_from_model
 from promptedgraphs.llms.chat import Chat
 
 logger = getLogger(__name__)
@@ -113,7 +111,6 @@ def data_model_to_schema(data_model: list[BaseModel] | BaseModel) -> dict:
     """Converts a Pydantic model to a JSON schema."""
     if isinstance(data_model, list) or str(data_model).startswith("list["):
         x = data_model.__args__[0]
-        name = x.model_json_schema().get("title", "DataModel")
         return RootModel[list[x]].model_json_schema()
     return data_model.model_json_schema()
 
@@ -204,7 +201,7 @@ async def data_to_schema(
         return data_model(**data_object)
 
     # Ensure schema_spec is defined. This is needed for the update_data_object function.
-    schema_spec = schema_spec or data_model_to_schema(data_model)
+    schema_spec = schema_spec or schema_from_model(data_model)
 
     corrections = []
     while retry_count > 0:
@@ -239,7 +236,7 @@ async def example():
         age: int = Field(..., gt=0)
         email: EmailStr
 
-    schema = data_model_to_schema(UserBioData)
+    schema = schema_from_model(UserBioData)
     print(schema)
 
     data_model = await data_to_schema(data, schema)

@@ -161,7 +161,10 @@ def can_cast_to_ints_without_losing_precision_np_updated(values, epsilon=1e-9):
     np_values = np.array(
         values
     )  # Convert the list to a NumPy array if it's not already one
-    fractional_parts = np.abs(np_values - np.round(np_values))
+    try:
+        fractional_parts = np.abs(np_values - np.round(np_values))
+    except TypeError:
+        return False
     return np.all(fractional_parts <= epsilon)
 
 
