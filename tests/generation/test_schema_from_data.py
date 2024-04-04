@@ -97,8 +97,7 @@ class TestSchemaFromData(unittest.TestCase):
                 "value": {
                     "anyOf": [
                         {"type": "integer"},
-                        {"type": "number"},
-                        {"type": "string"}
+                        {"type": "number"}
                     ],
                       "example": 10
                 }

@@ -1,3 +1,4 @@
+import contextlib
 from typing import Any, Dict, List
 
 from promptedgraphs.statistical.data_analysis import (
@@ -46,13 +47,22 @@ def infer_type(value: Any) -> Dict[str, Any]:
     """
     if isinstance(value, bool):
         return {"type": "boolean", "example": value}
-    elif isinstance(value, int) or can_cast_to_ints_without_losing_precision_np_updated(
-        [value]
-    ):
+    elif isinstance(value, int):
         return {"type": "integer", "example": value}
     elif isinstance(value, float):
+        if can_cast_to_ints_without_losing_precision_np_updated(
+            [value]
+        ):
+            return {"type": "integer", "example": value}
         return {"type": "number", "example": value}
     elif isinstance(value, str):
+        with contextlib.suppress(ValueError):
+            value_float = float(value)
+            if can_cast_to_ints_without_losing_precision_np_updated(
+                [value]
+            ):
+                return {"type": "integer", "example": int(value_float)}
+            return {"type": "number", "example": value_float}
         return {"type": "string", "example": value}
     elif isinstance(value, list):
         if not value:

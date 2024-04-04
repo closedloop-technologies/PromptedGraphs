@@ -146,7 +146,7 @@ CONTINUOUS_DISTRIBUTIONS = [
 ]
 
 
-def can_cast_to_ints_without_losing_precision_np_updated(values, epsilon=1e-9):
+def can_cast_to_ints_without_losing_precision_np_updated(values: list[float|int], epsilon=1e-9):
     """
     Check if all values in the list can be safely cast to integers without losing precision using NumPy,
     allowing for a small epsilon deviation from integer numbers to handle floating point errors.
