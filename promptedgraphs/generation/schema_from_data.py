@@ -50,17 +50,13 @@ def infer_type(value: Any) -> Dict[str, Any]:
     elif isinstance(value, int):
         return {"type": "integer", "example": value}
     elif isinstance(value, float):
-        if can_cast_to_ints_without_losing_precision_np_updated(
-            [value]
-        ):
+        if can_cast_to_ints_without_losing_precision_np_updated([value]):
             return {"type": "integer", "example": value}
         return {"type": "number", "example": value}
     elif isinstance(value, str):
         with contextlib.suppress(ValueError):
             value_float = float(value)
-            if can_cast_to_ints_without_losing_precision_np_updated(
-                [value]
-            ):
+            if can_cast_to_ints_without_losing_precision_np_updated([value]):
                 return {"type": "integer", "example": int(value_float)}
             return {"type": "number", "example": value_float}
         return {"type": "string", "example": value}
@@ -79,6 +75,7 @@ def infer_type(value: Any) -> Dict[str, Any]:
     else:
         return {}
 
+
 def merge_types(type1: Dict[str, Any], type2: Dict[str, Any]) -> Dict[str, Any]:
     """Merges two types to ensure the resulting type is the minimal union of the types found.
 
@@ -89,34 +86,53 @@ def merge_types(type1: Dict[str, Any], type2: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         dict: The merged type.
     """
-    type1_types = type1.get('anyOf', [type1.get("type")] if type1.get("type") else [])
-    type2_types = type2.get('anyOf', [type2.get("type")] if type2.get("type") else [])
+    type1_types = type1.get("anyOf", [type1.get("type")] if type1.get("type") else [])
+    type2_types = type2.get("anyOf", [type2.get("type")] if type2.get("type") else [])
 
-    type1_types = {t if isinstance(t, str) else t.get('type') for t in type1_types if isinstance(t,str) or t.get('type')}
-    type2_types = {t if isinstance(t, str) else t.get('type') for t in type2_types if isinstance(t,str) or t.get('type')}
+    type1_types = {
+        t if isinstance(t, str) else t.get("type")
+        for t in type1_types
+        if isinstance(t, str) or t.get("type")
+    }
+    type2_types = {
+        t if isinstance(t, str) else t.get("type")
+        for t in type2_types
+        if isinstance(t, str) or t.get("type")
+    }
 
     # if type1 is a subtype of type2, return type2
     if type1_types.issubset(type2_types):
         type1_types = type2_types
     elif type2_types.issubset(type1_types):
         type2_types = type1_types
-    
+
     if type1_types != type2_types:
         # type_diff = (type1_types - type2_types) | (type2_types - type1_types)
         # type_intersection = type1_types & type2_types
         type_union = type1_types | type2_types
         merged_example = type1.get("example", type2.get("example"))
-        return {"anyOf": [{'type':t} for t in sorted(type_union)], "example": merged_example}
+        return {
+            "anyOf": [{"type": t} for t in sorted(type_union)],
+            "example": merged_example,
+        }
 
     if "object" in type1_types:
-        merged_properties = {**type1.get("properties", {}), **type2.get("properties", {})}
+        merged_properties = {
+            **type1.get("properties", {}),
+            **type2.get("properties", {}),
+        }
         merged_example = type1.get("example", type2.get("example", {}))
-        return {"type": "object", "properties": merged_properties, "example": merged_example}
+        return {
+            "type": "object",
+            "properties": merged_properties,
+            "example": merged_example,
+        }
     elif "array" in type1_types:
         merged_items = merge_types(type1["items"], type2["items"])
         merged_example = type1.get("example", type2.get("example", []))
         return {"type": "array", "items": merged_items, "example": merged_example}
     return type1
+
 
 def example():
     data_samples = [

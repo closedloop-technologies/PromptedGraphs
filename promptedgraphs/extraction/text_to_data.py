@@ -1,6 +1,3 @@
-from pydantic import BaseModel
-
-from promptedgraphs.config import Config, load_config
 import asyncio
 import json
 from logging import getLogger
@@ -8,7 +5,7 @@ from typing import AsyncGenerator
 
 from pydantic import BaseModel
 
-from promptedgraphs.config import Config
+from promptedgraphs.config import Config, load_config
 from promptedgraphs.generation.schema_from_model import schema_from_model
 from promptedgraphs.llms.chat import Chat
 from promptedgraphs.llms.openai_chat import LanguageModel
@@ -77,8 +74,6 @@ async def extraction_chat(
     return results if isinstance(results, list) else [results]
 
 
-
-
 async def _extract_data_from_text(
     text: str,
     output_type: BaseModel | None = None,
@@ -126,7 +121,6 @@ async def _extract_data_from_text(
         yield result
 
 
-
 async def text_to_data(
     text: str,
     output_type: type[BaseModel] | BaseModel | str | None = None,
@@ -166,7 +160,7 @@ async def example():
                 "nonsensical",
                 "closing",
                 "harrassment",
-                "unknown"
+                "unknown",
             ],
         )
         description: str | None = Field(
@@ -177,9 +171,7 @@ async def example():
     load_config()
 
     msg = """How can I learn more about your product?"""
-    async for intent in text_to_data(
-        text=msg, output_type=UserIntent, config=Config()
-    ):
+    async for intent in text_to_data(text=msg, output_type=UserIntent, config=Config()):
         print(intent)
 
 
