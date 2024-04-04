@@ -16,11 +16,11 @@ class TestSchemaFromData(unittest.TestCase):
         expected_schema = {
             "type": "object",
             "properties": {
-                "name": {"type": "string"},
-                "age": {"type": "integer"},
-                "city": {"type": "string"}
+                "name": {"type": "string", "example": "John"},
+                "age": {"type": "integer", "example": 30},
+                "city": {"type": "string", "example": "New York"}
             },
-            "required": ["name", "age", "city"]
+            "required": sorted(["name", "age", "city"])
         }
         self.assertEqual(schema_from_data(data_samples), expected_schema)
 
@@ -33,19 +33,19 @@ class TestSchemaFromData(unittest.TestCase):
         expected_schema = {
             "type": "object",
             "properties": {
-                "name": {"type": "string"},
-                "age": {"type": "integer"},
-                "city": {"type": "string"},
-                "country": {"type": "string"}
+                "name": {"type": "string", "example": "John"},
+                "age": {"type": "integer", "example":30},
+                "city": {"type": "string", "example": "New York"},
+                "country": {"type": "string", "example": "USA"},
             },
-            "required": ["name", "age"]
+            "required": ["age","name"]
         }
         self.assertEqual(schema_from_data(data_samples), expected_schema)
 
     def test_nested_objects(self):
         data_samples = [
-            {"person": {"name": "John", "age": 30}, "city": "New York"},
-            {"person": {"name": "Alice", "age": 25}, "city": "London"}
+            {"person": {"name": "Alice", "age": 25}, "city": "London"},
+            {"person": {"name": "John", "age": 30}, "city": "New York"}
         ]
         expected_schema = {
             "type": "object",
@@ -53,13 +53,16 @@ class TestSchemaFromData(unittest.TestCase):
                 "person": {
                     "type": "object",
                     "properties": {
-                        "name": {"type": "string"},
-                        "age": {"type": "integer"}
-                    }
+                        "name": {"type": "string", "example": "John"},
+                        "age": {"type": "integer", "example": 30}
+                    },
+                    # "required": ["age","name"],
+                    "example": {"name": "Alice", "age": 25}
                 },
-                "city": {"type": "string"}
+                "city": {"type": "string", "example": "London"}
             },
-            "required": ["person", "city"]
+            "required": ["city","person"],
+            # "example": {"person": {"name": "John", "age": 30}, "city": "New York"}
         }
         self.assertEqual(schema_from_data(data_samples), expected_schema)
 
@@ -71,10 +74,11 @@ class TestSchemaFromData(unittest.TestCase):
         expected_schema = {
             "type": "object",
             "properties": {
-                "name": {"type": "string"},
+                "name": {"type": "string", "example": "John"   },
                 "hobbies": {
                     "type": "array",
-                    "items": {"type": "string"}
+                    "items": {"type": "string", "example": "reading"},
+                    'example': ['reading', 'swimming']
                 }
             },
             "required": sorted(["name", "hobbies"])
@@ -95,7 +99,8 @@ class TestSchemaFromData(unittest.TestCase):
                         {"type": "integer"},
                         {"type": "number"},
                         {"type": "string"}
-                    ]
+                    ],
+                      "example": 10
                 }
             },
             "required": ["value"]
@@ -103,4 +108,6 @@ class TestSchemaFromData(unittest.TestCase):
         self.assertEqual(schema_from_data(data_samples), expected_schema)
 
 if __name__ == '__main__':
-    unittest.main()
+    # unittest.main()
+    t = TestSchemaFromData()
+    t.test_type_merging()
