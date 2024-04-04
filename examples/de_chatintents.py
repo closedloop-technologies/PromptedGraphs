@@ -77,12 +77,14 @@ Here are some messages a chatbot might receive and their category
 
 """
 import asyncio
+from pprint import pprint
 
 import tqdm
 from pydantic import BaseModel, Field
 
 from promptedgraphs.config import Config, load_config
 from promptedgraphs.data_extraction import extract_data
+from promptedgraphs.extraction.text_to_data import text_to_data
 
 
 async def main():
@@ -133,21 +135,22 @@ async def main():
 
     intents = []
     # TODO move to parrellel processing across messages
-    #     """Hello fellow travelers! We're venturing to New Zealand from March 5-18th as a couple. We'll primarily be in Auckland visiting my sister, but we're hoping to explore more of the North Island. Since we're big fans of adventure sports and nature, we're thinking of places like the Tongariro Alpine Crossing or maybe Waitomo Caves. However, we're unsure about the best routes or if there are any hidden gems nearby. Any tips or suggestions? Has anyone been around those areas in March? Recommendations for cozy accommodations, local eateries, or any must-visit spots around Auckland would be greatly appreciated. Cheers!"""
+    # Make it an async generator
+    async def parallel_text_to_data(text):
+         results = []
+         async for result in text_to_data(text=text, output_type=UserIntent, config=Config()):
+               results.append((result, text))
+         return results
+    
+    # Create a list of coroutine objects
+    tasks = [parallel_text_to_data(msg) for msg in messages]
 
-    for i, msg in tqdm.tqdm(enumerate(messages)):
-        async for intent in extract_data(
-            text=msg, output_type=UserIntent, config=Config()
-        ):
-            print(i, intent)
-            intents.append((i, intent))
+    # Use as_completed to yield from tasks as they complete
+    for future in asyncio.as_completed(tasks):
+        results = await future
+        intents.extend(results)
 
-    # for i, msg in enumerate(messages):
-    #     async for intent in extract_data(
-    #     ):
-
-    print(intents)
-
+    pprint(intents)
 
 if __name__ == "__main__":
     asyncio.run(main())

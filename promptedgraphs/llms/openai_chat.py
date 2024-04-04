@@ -6,10 +6,10 @@ import openai
 from openai import AsyncOpenAI
 
 
+# Language models that support json chat completions
 class LanguageModel(Enum):
     GPT35_turbo = "gpt-3.5-turbo"
-    GPT4_preview = "gpt-4-0125-preview"
-    GPT4 = "gpt-4"
+    GPT4 = "gpt-4-0125-preview"
 
 
 class OpenAIChat:

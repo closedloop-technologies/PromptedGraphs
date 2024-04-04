@@ -1,13 +1,187 @@
 from pydantic import BaseModel
 
+from promptedgraphs.config import Config, load_config
+import asyncio
+import json
+from logging import getLogger
+from typing import AsyncGenerator
 
-def text_to_data(text: str, model: BaseModel) -> dict:
-    """Extracts structured data from unstructured text into an instance of a DataModel.
+from pydantic import BaseModel
 
-    Args:
-        text (str): The unstructured text to extract data from.
-        model (BaseModel): The Pydantic BaseModel to structure the extracted data into.
+from promptedgraphs.config import Config
+from promptedgraphs.generation.schema_from_model import schema_from_model
+from promptedgraphs.llms.chat import Chat
+from promptedgraphs.llms.openai_chat import LanguageModel
 
-    Returns:
-        dict: The extracted data structured according to the DataModel.
-    """
+logger = getLogger(__name__)
+
+SYSTEM_MESSAGE = """
+You are an information extraction expert.
+Your task is to extract structured information from the provided text.
+The extracted data should fit the provided schema to structure the data into a Pydantic BaseModel class.
+Do not create data and lightly edit and reformat data to match the schema.
+
+Assume this schema was written by an expert and follow them closely when extracting the data from the text.
+Return a list of extracted data that fits the schema
+Always prefer a list of similar items over a single complex item.
+
+## {name}(BaseModel) Schema:
+{description}
+
+{label_definitions}
+
+## Schema of the list of data to extract
+```json
+{schema}
+```
+
+Always just return a json list of the extracted data with no explanation.
+"""
+
+MESSAGE_TEMPLATE = """
+## Extract data from this text:
+
+{text}
+
+## JSON list of extracted data
+"""
+
+
+async def extraction_chat(
+    text: str,
+    chat: Chat = None,
+    system_message: str = SYSTEM_MESSAGE,
+    **chat_kwargs,
+) -> list[BaseModel] | list[str]:
+    msg = MESSAGE_TEMPLATE.format(text=text or "").strip()
+
+    # TODO replace with a tiktoken model and pad the message by 2x
+    response = await chat.chat_completion(
+        messages=[
+            {"role": "system", "content": system_message.strip()},
+            {"role": "system", "content": msg.strip()},
+        ],
+        **{
+            **{
+                "max_tokens": 4_096,
+                "temperature": 0.0,
+                "response_format": {"type": "json_object"},
+            },
+            **chat_kwargs,
+        },
+    )
+    # TODO check if the results stopped early, in that case, the list might be truncated
+    results = json.loads(response.choices[0].message.content)
+    if "items" in results:
+        results = results["items"]
+    return results if isinstance(results, list) else [results]
+
+
+
+
+async def _extract_data_from_text(
+    text: str,
+    output_type: BaseModel | None = None,
+    temperature: float = 0.0,
+    model: str = LanguageModel.GPT35_turbo,
+    config: Config = None,
+) -> AsyncGenerator[BaseModel, BaseModel] | AsyncGenerator[str, str]:
+    """Generate ideas using a text prompt"""
+
+    if output_type is None:
+        raise ValueError("output_type must be provided")
+
+    # Make a list out of the output type
+    class StructuredData(BaseModel):
+        items: list[output_type]
+
+    schema = schema_from_model(StructuredData)
+
+    chat = Chat(
+        config=config or Config(),
+        model=model,
+    )
+
+    # Format System Message
+    item_schema = output_type.model_json_schema()
+    labels = item_schema.get("properties", {})
+    label_list = sorted(labels.keys())
+    system_message = SYSTEM_MESSAGE.format(
+        name=item_schema.get("title", "DataModel"),
+        description=item_schema.get("description", ""),
+        label_definitions="\n".join(
+            [f" * {label}: {labels[label]}" for label in label_list]
+        ),
+        schema=json.dumps(schema, indent=4),
+    )
+
+    # async def call_brainstorming_chat():
+    results = await extraction_chat(
+        text=text,
+        chat=chat,
+        system_message=system_message,
+        temperature=temperature,
+    )
+    for result in results:
+        yield result
+
+
+
+async def text_to_data(
+    text: str,
+    output_type: type[BaseModel] | BaseModel | str | None = None,
+    temperature: float = 0.0,
+    model: str = LanguageModel.GPT35_turbo,
+    config: Config = None,
+) -> AsyncGenerator[BaseModel, BaseModel] | AsyncGenerator[str, str]:
+    async for result in _extract_data_from_text(
+        text,
+        temperature=temperature,
+        output_type=output_type,
+        model=model,
+        config=config,
+    ):
+        # TODO heal the data if it cannot be parsed
+        if not result:
+            continue
+        yield output_type(**result)
+
+
+async def example():
+    from pydantic import BaseModel, Field
+
+    class UserIntent(BaseModel):
+        """The UserIntent entity, representing the canonical description of what a user desires to achieve in a given conversation."""
+
+        intent_name: str = Field(
+            title="Intent Name",
+            description="Canonical name of the user's intent",
+            examples=[
+                "question",
+                "command",
+                "clarification",
+                "chit_chat",
+                "greeting",
+                "feedback",
+                "nonsensical",
+                "closing",
+                "harrassment",
+                "unknown"
+            ],
+        )
+        description: str | None = Field(
+            title="Intent Description",
+            description="A detailed explanation of the user's intent",
+        )
+
+    load_config()
+
+    msg = """How can I learn more about your product?"""
+    async for intent in text_to_data(
+        text=msg, output_type=UserIntent, config=Config()
+    ):
+        print(intent)
+
+
+if __name__ == "__main__":
+    asyncio.run(example())
