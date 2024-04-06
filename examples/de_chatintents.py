@@ -83,8 +83,7 @@ import tqdm
 from pydantic import BaseModel, Field
 
 from promptedgraphs.config import Config, load_config
-from promptedgraphs.data_extraction import extract_data
-from promptedgraphs.extraction.text_to_data import text_to_data
+from promptedgraphs.extraction.data_from_text import data_from_text
 
 
 async def main():
@@ -136,14 +135,14 @@ async def main():
     intents = []
     # TODO move to parrellel processing across messages
     # Make it an async generator
-    async def parallel_text_to_data(text):
+    async def parallel_data_from_text(text):
          results = []
-         async for result in text_to_data(text=text, output_type=UserIntent, config=Config()):
+         async for result in data_from_text(text=text, output_type=UserIntent, config=Config()):
                results.append((result, text))
          return results
     
     # Create a list of coroutine objects
-    tasks = [parallel_text_to_data(msg) for msg in messages]
+    tasks = [parallel_data_from_text(msg) for msg in messages]
 
     # Use as_completed to yield from tasks as they complete
     for future in asyncio.as_completed(tasks):

@@ -136,7 +136,6 @@ from [examples/de_chatintents.ipynb](https://github.com/closedloop-technologies/
 from pydantic import BaseModel, Field
 
 from promptedgraphs.config import Config
-from promptedgraphs.data_extraction import extract_data
 
 
 class UserIntent(BaseModel):
@@ -166,8 +165,8 @@ class UserIntent(BaseModel):
 
 msg = """It's a busy day, I need to send an email and to buy groceries"""
 
-async for intent in extract_data(
-    text=msg, output_type=list[UserIntent], config=Config()
+async for intent in data_from_text(
+    text=msg, output_type=UserIntent, config=Config()
 ):
     print(intent)
 ```

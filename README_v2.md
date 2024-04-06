@@ -28,14 +28,14 @@ pip install promptedgraphs
 Here's a quick example to get you started:
 
 ```python
-from promptedgraphs.extraction import text_to_data
+from promptedgraphs.extraction import data_from_text
 from myproject.models import MyDataModel
 
 # Example text
 text = "Your example text goes here."
 
 # Extract data from text
-data = text_to_data(text, model=MyDataModel)
+data = data_from_text(text, model=MyDataModel)
 
 print(data)
 ```
