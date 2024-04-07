@@ -172,7 +172,7 @@ async def update_data_object(
     return data_object, corrections
 
 
-async def data_to_schema(
+async def object_to_data(
     data_object: dict | list,
     schema_spec: dict | None = None,
     data_model: BaseModel | None = None,
@@ -192,7 +192,7 @@ async def data_to_schema(
     """
     if isinstance(data_object, list):
         return [
-            await data_to_schema(obj, schema_spec, data_model, coerce)
+            await object_to_data(obj, schema_spec, data_model, coerce)
             for obj in data_object
         ]
     if schema_spec and not data_model:
@@ -239,7 +239,7 @@ async def example():
     schema = schema_from_model(UserBioData)
     print(schema)
 
-    data_model = await data_to_schema(data, schema)
+    data_model = await object_to_data(data, schema)
     print(data_model)
 
 

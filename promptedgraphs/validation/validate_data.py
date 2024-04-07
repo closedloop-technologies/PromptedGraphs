@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from promptedgraphs.normalization.data_to_schema import data_to_schema
+from promptedgraphs.normalization.object_to_data import object_to_data
 
 
 def validate_data(
@@ -19,7 +19,7 @@ def validate_data(
         bool: True if the data object is valid, False otherwise.
     """
     try:
-        data_to_schema(
+        object_to_data(
             data_object=data_object,
             schema_spec=schema_spec,
             data_model=data_model,

@@ -8,7 +8,7 @@ from promptedgraphs.extraction.data_from_text import data_from_text
 from promptedgraphs.llms.openai_chat import LanguageModel
 
 
-async def extract_entities(
+async def entities_from_text(
     text: str,
     labels: dict[str, str],
     config: Config,
@@ -83,7 +83,7 @@ async def example():
     }
 
     ents = []
-    async for msg in extract_entities(
+    async for msg in entities_from_text(
         name="sentiment",
         description="Sentiment Analysis of Customer Reviews",
         text=text_of_reviews,
