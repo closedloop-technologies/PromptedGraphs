@@ -20,10 +20,11 @@ async def entities_from_text(
 ):
     label_list = sorted(labels.keys())
 
-    LabelEnums = enum.Enum('LabelEnums', {l:i for i,l in enumerate(label_list)})
+    LabelEnums = enum.Enum("LabelEnums", {l: i for i, l in enumerate(label_list)})
 
     class EntityReference(BaseModel):
         """The raw text and label for each entity occurrence"""
+
         text_span: str = Field(
             title="Text Span",
             description="The exact text of referenced entity.",
@@ -47,12 +48,16 @@ async def entities_from_text(
                 title="Reason",
                 description="A short description of why that label was selected.",
             )
-    EntityReference.__doc__ += """\n
-    Labels must be one of the following: {label_list}""".format(label_list=label_list + ["==NONE=="])
 
     EntityReference.__doc__ += """\n
-    Label Definitions:\n""" + "\n".join([f" * {label}: {labels[label]}" for label in label_list])
-    
+    Labels must be one of the following: {label_list}""".format(
+        label_list=label_list + ["==NONE=="]
+    )
+
+    EntityReference.__doc__ += """\n
+    Label Definitions:\n""" + "\n".join(
+        [f" * {label}: {labels[label]}" for label in label_list]
+    )
 
     async for er in data_from_text(
         text=text,
@@ -62,7 +67,6 @@ async def entities_from_text(
         temperature=temperature,
     ):
         yield er
-
 
 
 async def example():

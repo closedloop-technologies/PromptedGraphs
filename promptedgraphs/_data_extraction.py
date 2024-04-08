@@ -20,7 +20,6 @@ In particular look for the following fields: {label_list}.
 """
 
 
-
 def create_messages(text, name, labels, custom_system_message=None):
     label_list = list(labels.keys())
 
@@ -127,4 +126,3 @@ def create_functions(is_parent_list, schema, fn_name: str = None):
             },
         }
     ]
-

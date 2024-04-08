@@ -1,6 +1,8 @@
 import ast
 from logging import getLogger
 
+import black
+
 logger = getLogger(__name__)
 
 
@@ -52,6 +54,10 @@ def is_potentially_unsafe(node):  # sourcery skip: low-code-quality
         ):
             return True
     return False
+
+
+def format_code(code):
+    return black.format_str(code, mode=black.FileMode())
 
 
 def safer_exec(model_code):

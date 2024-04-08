@@ -11,7 +11,6 @@ def deep_merge(d1: dict[str, any], d2: dict[str, any]):
             d1[k] += str(v)
 
 
-
 def add_space_before_capital(text):
     return re.sub(r"(?<=[a-z])(?=[A-Z])", " ", text)
 
@@ -34,6 +33,7 @@ def format_fieldinfo(key, v: dict):
     if v.get("examples"):
         l += f"\n\texamples: {v.get('examples')}"
     return l.rstrip()
+
 
 def remove_nas(data: dict[str, any], nulls: list[str] = None):
     nulls = nulls or ["==NA==", "NA", "N/A", "n/a", "#N/A", "None", "none"]

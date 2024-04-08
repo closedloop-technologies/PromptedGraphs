@@ -171,7 +171,9 @@ async def example():
     load_config()
 
     msg = """How can I learn more about your product?"""
-    async for intent in data_from_text(text=msg, output_type=UserIntent, config=Config()):
+    async for intent in data_from_text(
+        text=msg, output_type=UserIntent, config=Config()
+    ):
         print(intent)
 
 
