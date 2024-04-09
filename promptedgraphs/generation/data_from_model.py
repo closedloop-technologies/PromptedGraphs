@@ -14,7 +14,8 @@ from promptedgraphs.llms.openai_chat import LanguageModel
 logger = getLogger(__name__)
 
 SYSTEM_MESSAGE = """
-You are a Creative Director and Ideation Specialist. Your task is brainstorm examples of objects to be passed into python's `{name}(BaseModel)` pydantic class.
+{role}
+Your task is brainstorm examples of objects to be passed into python's `{name}(BaseModel)` pydantic class.
 Generate a list of diverse and creative examples of objects with the following fields: {label_list}
 
 Below are definitions of each label to help aid you in creating correct examples to generate.
@@ -22,12 +23,10 @@ Assume these definitions are written by an expert and follow them closely when g
 
 {label_definitions}
 
-## Schema of the list of example data models
+## Schema of data models to generate
 ```json
 {schema}
 ```
-
-Always just return a json list of examples with no explanation.
 """
 
 MESSAGE_TEMPLATE = """
@@ -37,6 +36,12 @@ Generate a list of {n} examples.
 YOU MUST RETURN A JSON LIST OF EXAMPLES! Not a single example!
 """
 
+SINGLE_MESSAGE_TEMPLATE = """
+{text}{positive_examples}{negative_examples}
+Generate a single example matching the schema.
+
+YOU MUST RETURN A JSON OBJECT!
+"""
 
 async def brainstorming_chat(
     text: str,
@@ -47,22 +52,34 @@ async def brainstorming_chat(
     system_message: str = SYSTEM_MESSAGE,
     **chat_kwargs,
 ) -> list[BaseModel] | list[str]:
-    msg = MESSAGE_TEMPLATE.format(
-        text=text or "",
-        n=batch_size,
-        positive_examples=f"\n## Good Examples:\n{positive_examples}\n"
-        if positive_examples
-        else "",
-        negative_examples=f"\n## Bad Examples:\n{negative_examples}\n"
-        if negative_examples
-        else "",
-    ).strip()
+    
+    if batch_size == 1:
+        msg = SINGLE_MESSAGE_TEMPLATE.format(
+            text=text or "",
+            positive_examples=f"\n## Good Examples:\n{positive_examples}\n"
+            if positive_examples
+            else "",
+            negative_examples=f"\n## Bad Examples:\n{negative_examples}\n"
+            if negative_examples
+            else "",
+        )
+    else:
+        msg = MESSAGE_TEMPLATE.format(
+            text=text or "",
+            n=batch_size,
+            positive_examples=f"\n## Good Examples:\n{positive_examples}\n"
+            if positive_examples
+            else "",
+            negative_examples=f"\n## Bad Examples:\n{negative_examples}\n"
+            if negative_examples
+            else "",
+        )
 
     # TODO replace with a tiktoken model and pad the message by 2x
     response = await chat.chat_completion(
         messages=[
             {"role": "system", "content": system_message.strip()},
-            {"role": "system", "content": msg.strip()},
+            {"role": "user", "content": msg.strip()},
         ],
         **{
             **{
@@ -90,6 +107,7 @@ async def _brainstorm(
     max_workers: int = 5,
     temperature: float = 0.6,
     model: str = LanguageModel.GPT35_turbo,
+    role: str="You are a Creative Director and Ideation Specialist.",
     config: Config = None,
 ) -> AsyncGenerator[BaseModel, BaseModel] | AsyncGenerator[str, str]:
     """Generate ideas using a text prompt"""
@@ -98,10 +116,13 @@ async def _brainstorm(
     negative_examples = negative_examples or []
 
     # Make a list out of the output type
-    class Examples(BaseModel):
-        items: list[output_type]
+    if n > 1:
+        class Examples(BaseModel):
+            items: list[output_type]
 
-    schema = schema_from_model(Examples)
+        schema = schema_from_model(Examples)
+    else:
+        schema = schema_from_model(output_type)
 
     batch_size = min(batch_size, n)
 
@@ -115,6 +136,7 @@ async def _brainstorm(
     labels = item_schema.get("properties", {})
     label_list = sorted(labels.keys())
     system_message = SYSTEM_MESSAGE.format(
+        role=role,
         name=item_schema.get("title", "DataModel"),
         label_list=label_list,
         label_definitions="\n".join(
@@ -127,6 +149,20 @@ async def _brainstorm(
         max_workers = max(1, min(max_workers, 1 + n // batch_size))
     else:
         max_workers = max(1, min(max_workers, n // batch_size))
+
+    if max_workers == 1:
+        results = await brainstorming_chat(
+            text=text,
+            chat=chat,
+            positive_examples=positive_examples,
+            negative_examples=negative_examples,
+            batch_size=n,
+            system_message=system_message,
+            temperature=temperature,
+        )
+        for result in results:
+            yield result
+        return
 
     async def call_brainstorming_chat():
         results = await brainstorming_chat(
@@ -160,6 +196,7 @@ async def generate(
     max_workers: int = 5,
     temperature: float = 0.6,
     model: str = LanguageModel.GPT35_turbo,
+    role: str="You are a Creative Director and Ideation Specialist.",
     config: Config = None,
 ) -> AsyncGenerator[BaseModel, BaseModel] | AsyncGenerator[str, str]:
     yield_count = 0
@@ -175,6 +212,7 @@ async def generate(
             batch_size=batch_size,
             max_workers=max_workers,
             model=model,
+            role=role,
             config=config,
         ):
             yield output_type(**result)

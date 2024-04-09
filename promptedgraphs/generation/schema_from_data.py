@@ -1,9 +1,78 @@
 import contextlib
+import json
 from typing import Any, Dict, List
-
+from pydantic import BaseModel, Field
+import tqdm
+from promptedgraphs.generation.data_from_model import generate
+from promptedgraphs.llms.chat import Chat
 from promptedgraphs.statistical.data_analysis import (
     can_cast_to_ints_without_losing_precision_np_updated,
 )
+
+
+class JSONSchemaTitleDescription(BaseModel):
+    title: str = Field(
+        title="Title",
+        description="A short description of the provided schema.",
+    )
+    description: str = Field(
+        title="Description",
+        description="The concise description of the schema.",
+    )
+
+
+async def add_schema_titles_and_descriptions(
+    schema: dict, parent_keys: list[str] = None, chat: Chat | None = None, ittr=None
+):
+    """Adds names and descriptions to a schema based a language model."""
+    # Recursively traverse the schema and add title and descriptions
+    # starting with the leaf nodes and working up to the root
+    # each time adding a name and description to the schema
+    if ittr is None:
+        ittr = tqdm.tqdm(desc="Adding Titles and Descriptions")
+    chat = chat or Chat()
+    parent_keys = parent_keys or []
+    if schema.get("type") == "array":
+        await add_schema_titles_and_descriptions(
+            schema.get("items", {}), parent_keys, chat=chat, ittr=ittr
+        )
+    elif schema.get("type") != "object":
+        # At the leaf node no need to add a title or description
+        return
+    for key, value in schema.get("properties", {}).items():
+        await add_schema_titles_and_descriptions(
+            value, parent_keys + [key], chat=chat, ittr=ittr
+        )
+
+    # Make sure the object has a title and description
+    if schema.get("title") and schema.get("description"):
+        return
+
+    prompt = """You have been tasked with adding titles and descriptions to a given JSON Schema.
+
+    Note this object is a sub-object of a larger schema and should be named accordingly.
+    It can be accessed using the following path: {parent_keys}.
+    
+    ## Top-level object needing a title and description
+    ```json
+    {schema}
+    ```
+    """.format(
+        schema=json.dumps(schema, indent=4),
+        parent_keys=".".join(parent_keys),
+    )
+
+    async for meta_data in generate(
+        prompt,
+        n=1,
+        output_type=JSONSchemaTitleDescription,
+        temperature=0.0,
+        role="You are an ontologist and schema expert.",
+    ):
+        schema["title"] = schema.get("title") or meta_data.title
+        schema["description"] = schema.get("description") or meta_data.description
+        ittr.update(1)
+        break
 
 
 def schema_from_data(data_samples: List[Dict[str, Any]]) -> Dict[str, Any]:
