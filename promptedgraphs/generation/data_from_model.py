@@ -10,6 +10,7 @@ from promptedgraphs.config import Config
 from promptedgraphs.generation.schema_from_model import schema_from_model
 from promptedgraphs.llms.chat import Chat
 from promptedgraphs.llms.openai_chat import LanguageModel
+from promptedgraphs.llms.usage import Usage
 
 logger = getLogger(__name__)
 
@@ -109,6 +110,7 @@ async def _brainstorm(
     model: str = LanguageModel.GPT35_turbo,
     role: str = "You are a Creative Director and Ideation Specialist.",
     config: Config = None,
+    usage: Usage = None,
 ) -> AsyncGenerator[BaseModel, BaseModel] | AsyncGenerator[str, str]:
     """Generate ideas using a text prompt"""
     config = config or Config()
@@ -199,8 +201,10 @@ async def generate(
     model: str = LanguageModel.GPT35_turbo,
     role: str = "You are a Creative Director and Ideation Specialist.",
     config: Config = None,
+    usage: Usage = None,
 ) -> AsyncGenerator[BaseModel, BaseModel] | AsyncGenerator[str, str]:
     yield_count = 0
+    usage = usage or Usage(model=model)
     while yield_count < n:
         new_yield_count = 0
         async for result in _brainstorm(
@@ -215,6 +219,7 @@ async def generate(
             model=model,
             role=role,
             config=config,
+            usage=usage,
         ):
             yield output_type(**result)
             new_yield_count += 1

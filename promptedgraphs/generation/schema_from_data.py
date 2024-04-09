@@ -15,7 +15,7 @@ from promptedgraphs.statistical.data_analysis import (
 class JSONSchemaTitleDescription(BaseModel):
     title: str = Field(
         title="Title",
-        description="A short description of the provided schema.",
+        description="A short description of the provided schema.  PascalCase is recommended.",
     )
     description: str = Field(
         title="Description",
@@ -23,58 +23,123 @@ class JSONSchemaTitleDescription(BaseModel):
     )
 
 
+SYSTEM_MESSAGE = """You are an ontologist and JSON Schema expert.
+Your task is to return a partial JSON schema object with only the fields 'title' and 'description' that are best used to describe the data provided by the user.
+
+Only return a JSON object in the form
+{
+     "title": "a short name describing the user's object"
+     "description": "a concise description of the object"
+}
+"""
+
+MESSAGE_TEMPLATE = """
+## Schema of the data object
+```json
+{schema}
+``` 
+
+## Example of the data object
+```json
+{example}
+```
+This object is nested within a parent object and is accessed using the following path: `{path}`
+
+This object has the following sibling properties: {sibling_properties}
+
+Use the path and sibling properties to help determine the best title and description for the object.
+You do not need to include the path or sibling properties in the description.
+"""
+
+
 async def add_schema_titles_and_descriptions(
-    schema: dict, parent_keys: list[str] = None, chat: Chat | None = None, ittr=None
+    schema: dict,
+    parent_keys: list[str] = None,
+    chat: Chat | None = None,
+    ittr=None,
+    sibling_properties: list[str] = None,
 ):
-    """Adds names and descriptions to a schema based a language model."""
-    # Recursively traverse the schema and add title and descriptions
-    # starting with the leaf nodes and working up to the root
-    # each time adding a name and description to the schema
+    """Adds names and descriptions to a schema based a language model.
+    Recursively traverse the schema and add title and descriptions
+    starting with the leaf nodes and working up to the root
+    each time adding a name and description to the schema
+    """
     if ittr is None:
         ittr = tqdm.tqdm(desc="Adding Titles and Descriptions")
+
     chat = chat or Chat()
     parent_keys = parent_keys or []
     if schema.get("type") == "array":
         await add_schema_titles_and_descriptions(
-            schema.get("items", {}), parent_keys, chat=chat, ittr=ittr
+            schema.get("items", {}),
+            parent_keys,
+            chat=chat,
+            ittr=ittr,
+            sibling_properties=[],
         )
     elif schema.get("type") != "object":
         # At the leaf node no need to add a title or description
         return
+
+    properties = set(schema.get("properties", {}).keys())
     for key, value in schema.get("properties", {}).items():
         await add_schema_titles_and_descriptions(
-            value, parent_keys + [key], chat=chat, ittr=ittr
+            value,
+            parent_keys + [key],
+            chat=chat,
+            ittr=ittr,
+            sibling_properties=[parent_keys + [p] for p in properties - {key}],
         )
 
     # Make sure the object has a title and description
     if schema.get("title") and schema.get("description"):
         return
 
-    prompt = """You have been tasked with adding titles and descriptions to a given JSON Schema.
-
-    Note this object is a sub-object of a larger schema and should be named accordingly.
-    It can be accessed using the following path: {parent_keys}.
-    
-    ## Top-level object needing a title and description
-    ```json
-    {schema}
-    ```
-    """.format(
-        schema=json.dumps(schema, indent=4),
-        parent_keys=".".join(parent_keys),
+    example = schema.get("example") or {}
+    path = ".".join(parent_keys) or "base object"
+    sibling_properties = (
+        "\n * " + "\n * ".join([".".join(sp) for sp in sibling_properties])
+        if sibling_properties
+        else "none"
     )
 
-    async for meta_data in generate(
-        prompt,
-        n=1,
-        output_type=JSONSchemaTitleDescription,
-        temperature=0.0,
-        role="You are an ontologist and schema expert.",
-    ):
-        schema["title"] = schema.get("title") or meta_data.title
-        schema["description"] = schema.get("description") or meta_data.description
-        ittr.update(1)
-        break
+    response = await chat.chat_completion(
+        [
+            {
+                "role": "system",
+                "content": SYSTEM_MESSAGE.strip(),
+            },
+            {
+                "role": "user",
+                "content": MESSAGE_TEMPLATE.format(
+                    schema=json.dumps(
+                        {
+                            "type": schema.get("type"),
+                            "properties": schema.get("properties", {}),
+                        },
+                        indent=4,
+                    ),
+                    example=json.dumps(example, indent=4)
+                    if example
+                    else "none available",
+                    path=path,
+                    sibling_properties="\n" + json.dumps(sibling_properties, indent=4),
+                ),
+            },
+        ],
+        **{
+            "max_tokens": 4_096,
+            "temperature": 0.0,
+            "response_format": {"type": "json_object"},
+        },
+    )
+    meta_data = json.loads(response.choices[0].message.content)
+    schema["title"] = schema.get("title") or meta_data.get("title")
+    if schema["title"]:  # to PascalCase
+        schema["title"] = schema["title"].strip().replace(" ", "")
+        schema["title"] = schema["title"][0].upper() + schema["title"][1:]
+    schema["description"] = schema.get("description") or meta_data.get("description")
+    ittr.update(1)
 
 
 def schema_from_data(data_samples: List[Dict[str, Any]]) -> Dict[str, Any]:
