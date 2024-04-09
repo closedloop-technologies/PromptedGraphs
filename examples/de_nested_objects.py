@@ -70,8 +70,7 @@ async def main():
     msg = """Message from Jane, Hello fellow travelers! We're venturing to New Zealand from March 5-18th as a couple. We'll primarily be in Auckland visiting my sister, but we're hoping to explore more of the North Island. Since we're big fans of adventure sports and nature, we're thinking of places like the Tongariro Alpine Crossing or maybe Waitomo Caves. However, we're unsure about the best routes or if there are any hidden gems nearby. Any tips or suggestions? Has anyone been around those areas in March? Recommendations for cozy accommodations, local eateries, or any must-visit spots around Auckland would be greatly appreciated. Cheers!"""
 
     async for state in data_from_text(
-        text=msg, output_type=WorkflowState, config=Config(),
-        model=LanguageModel.GPT4
+        text=msg, output_type=WorkflowState, config=Config(), model=LanguageModel.GPT4
     ):
         print(state)
 

@@ -133,14 +133,17 @@ async def main():
         )
 
     intents = []
+
     # TODO move to parrellel processing across messages
     # Make it an async generator
     async def parallel_data_from_text(text):
-         results = []
-         async for result in data_from_text(text=text, output_type=UserIntent, config=Config()):
-               results.append((result, text))
-         return results
-    
+        results = []
+        async for result in data_from_text(
+            text=text, output_type=UserIntent, config=Config()
+        ):
+            results.append((result, text))
+        return results
+
     # Create a list of coroutine objects
     tasks = [parallel_data_from_text(msg) for msg in messages]
 
@@ -150,6 +153,7 @@ async def main():
         intents.extend(results)
 
     pprint(intents)
+
 
 if __name__ == "__main__":
     asyncio.run(main())

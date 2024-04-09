@@ -1,7 +1,7 @@
 import asyncio
 
 from promptedgraphs.config import Config, load_config
-from promptedgraphs.entity_recognition import extract_entities
+from promptedgraphs.extraction.entities_from_text import entities_from_text
 
 
 async def main():
@@ -19,7 +19,7 @@ async def main():
         "INTERESTS": "Additional activities or attractions the travelers might enjoy.",
     }
 
-    async for msg in extract_entities(
+    async for msg in entities_from_text(
         travel_text, labels=itinerary_entities, config=Config(), include_reason=True
     ):
         print(msg)

@@ -9,6 +9,7 @@ from promptedgraphs.config import Config, load_config
 from promptedgraphs.generation.schema_from_model import schema_from_model
 from promptedgraphs.llms.chat import Chat
 from promptedgraphs.llms.openai_chat import LanguageModel
+from promptedgraphs.llms.usage import Usage
 
 logger = getLogger(__name__)
 
@@ -48,8 +49,10 @@ async def extraction_chat(
     text: str,
     chat: Chat = None,
     system_message: str = SYSTEM_MESSAGE,
+    usage: Usage = None,
     **chat_kwargs,
 ) -> list[BaseModel] | list[str]:
+    usage = usage or Usage()
     msg = MESSAGE_TEMPLATE.format(text=text or "").strip()
 
     # TODO replace with a tiktoken model and pad the message by 2x
@@ -67,6 +70,10 @@ async def extraction_chat(
             **chat_kwargs,
         },
     )
+    if hasattr(response, "usage"):
+        usage.completion_tokens = getattr(response.usage, "completion_tokens") or 0
+        usage.prompt_tokens = getattr(response.usage, "prompt_tokens") or 0
+
     # TODO check if the results stopped early, in that case, the list might be truncated
     results = json.loads(response.choices[0].message.content)
     if "items" in results:
@@ -80,11 +87,14 @@ async def _extract_data_from_text(
     temperature: float = 0.0,
     model: str = LanguageModel.GPT35_turbo,
     config: Config = None,
+    usage: Usage = None,
 ) -> AsyncGenerator[BaseModel, BaseModel] | AsyncGenerator[str, str]:
     """Generate ideas using a text prompt"""
 
     if output_type is None:
         raise ValueError("output_type must be provided")
+
+    usage = usage or Usage(model)
 
     # Make a list out of the output type
     class StructuredData(BaseModel):
@@ -116,6 +126,7 @@ async def _extract_data_from_text(
         chat=chat,
         system_message=system_message,
         temperature=temperature,
+        usage=usage,
     )
     for result in results:
         yield result
@@ -127,13 +138,16 @@ async def data_from_text(
     temperature: float = 0.0,
     model: str = LanguageModel.GPT35_turbo,
     config: Config = None,
+    usage: Usage = None,
 ) -> AsyncGenerator[BaseModel, BaseModel] | AsyncGenerator[str, str]:
+    usage = usage or Usage(model)
     async for result in _extract_data_from_text(
         text,
         temperature=temperature,
         output_type=output_type,
         model=model,
         config=config,
+        usage=usage,
     ):
         # TODO heal the data if it cannot be parsed
         if not result:

@@ -43,6 +43,7 @@ Generate a single example matching the schema.
 YOU MUST RETURN A JSON OBJECT!
 """
 
+
 async def brainstorming_chat(
     text: str,
     chat: Chat = None,
@@ -52,7 +53,6 @@ async def brainstorming_chat(
     system_message: str = SYSTEM_MESSAGE,
     **chat_kwargs,
 ) -> list[BaseModel] | list[str]:
-    
     if batch_size == 1:
         msg = SINGLE_MESSAGE_TEMPLATE.format(
             text=text or "",
@@ -107,7 +107,7 @@ async def _brainstorm(
     max_workers: int = 5,
     temperature: float = 0.6,
     model: str = LanguageModel.GPT35_turbo,
-    role: str="You are a Creative Director and Ideation Specialist.",
+    role: str = "You are a Creative Director and Ideation Specialist.",
     config: Config = None,
 ) -> AsyncGenerator[BaseModel, BaseModel] | AsyncGenerator[str, str]:
     """Generate ideas using a text prompt"""
@@ -117,6 +117,7 @@ async def _brainstorm(
 
     # Make a list out of the output type
     if n > 1:
+
         class Examples(BaseModel):
             items: list[output_type]
 
@@ -196,7 +197,7 @@ async def generate(
     max_workers: int = 5,
     temperature: float = 0.6,
     model: str = LanguageModel.GPT35_turbo,
-    role: str="You are a Creative Director and Ideation Specialist.",
+    role: str = "You are a Creative Director and Ideation Specialist.",
     config: Config = None,
 ) -> AsyncGenerator[BaseModel, BaseModel] | AsyncGenerator[str, str]:
     yield_count = 0

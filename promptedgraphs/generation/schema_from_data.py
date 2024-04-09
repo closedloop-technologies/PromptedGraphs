@@ -1,8 +1,10 @@
 import contextlib
 import json
 from typing import Any, Dict, List
-from pydantic import BaseModel, Field
+
 import tqdm
+from pydantic import BaseModel, Field
+
 from promptedgraphs.generation.data_from_model import generate
 from promptedgraphs.llms.chat import Chat
 from promptedgraphs.statistical.data_analysis import (

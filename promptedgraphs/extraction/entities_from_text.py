@@ -1,11 +1,31 @@
 import asyncio
-import enum
+import re
+from typing import AsyncGenerator, Iterator
 
 from pydantic import BaseModel, Field
 
 from promptedgraphs.config import Config, load_config
 from promptedgraphs.extraction.data_from_text import data_from_text
 from promptedgraphs.llms.openai_chat import LanguageModel
+from promptedgraphs.llms.usage import Usage
+from promptedgraphs.models import EntityReference
+
+
+def _format_entities(
+    entity: BaseModel, text: str, include_reason=False
+) -> Iterator[EntityReference]:
+    if isinstance(entity, Usage):
+        yield entity
+        return
+    if entity.is_entity:
+        for m in re.finditer(entity.text_span, text):
+            yield EntityReference(
+                start=m.start(),
+                end=m.end(),
+                text=entity.text_span,
+                label=entity.label,
+                reason=entity.reason if include_reason else None,
+            )
 
 
 async def entities_from_text(
@@ -17,12 +37,12 @@ async def entities_from_text(
     include_reason=True,
     model=LanguageModel.GPT35_turbo,
     temperature=0.2,
-):
+    usage: Usage = None,
+) -> AsyncGenerator[EntityReference | Usage, None]:
+    usage = usage or Usage(model=model)
     label_list = sorted(labels.keys())
 
-    LabelEnums = enum.Enum("LabelEnums", {l: i for i, l in enumerate(label_list)})
-
-    class EntityReference(BaseModel):
+    class EntityMention(BaseModel):
         """The raw text and label for each entity occurrence"""
 
         text_span: str = Field(
@@ -43,30 +63,30 @@ async def entities_from_text(
                 title="Reason",
                 description="A short description of why that label was selected.",
             )
-        else:
-            reason: str | None = Field(
-                title="Reason",
-                description="A short description of why that label was selected.",
-            )
 
-    EntityReference.__doc__ += """\n
+    EntityMention.__doc__ += f"""\nEntity Type: {name}""" if name else ""
+    EntityMention.__doc__ += description or ""
+    EntityMention.__doc__ += """\n
     Labels must be one of the following: {label_list}""".format(
         label_list=label_list + ["==NONE=="]
     )
-
-    EntityReference.__doc__ += """\n
+    EntityMention.__doc__ += """\n
     Label Definitions:\n""" + "\n".join(
         [f" * {label}: {labels[label]}" for label in label_list]
     )
-
+    usage.start()
     async for er in data_from_text(
         text=text,
-        output_type=EntityReference,
+        output_type=EntityMention,
         config=config or Config(),
         model=model,
         temperature=temperature,
+        usage=usage,
     ):
-        yield er
+        for ent in _format_entities(er, text, include_reason=include_reason):
+            yield ent
+
+    usage.end()
 
 
 async def example():
@@ -87,6 +107,7 @@ async def example():
     }
 
     ents = []
+    usage = Usage(model=LanguageModel.GPT35_turbo)
     async for msg in entities_from_text(
         name="sentiment",
         description="Sentiment Analysis of Customer Reviews",
@@ -94,10 +115,12 @@ async def example():
         labels=labels,
         config=Config(),
         include_reason=False,
+        usage=usage,
     ):
         ents.append(msg)
 
     print(ents)
+    print("Usage:", usage)
 
     # displacy.render(
     #     {
