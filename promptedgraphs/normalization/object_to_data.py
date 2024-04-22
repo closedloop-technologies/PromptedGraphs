@@ -141,7 +141,7 @@ def schema_to_data_model(schema_spec: dict) -> tuple[BaseModel, str]:
 
     # Get the constucted object from the model code in the exec environment
     exec_variable_scope = safer_exec(model_code)
-    return exec_variable_scope[class_name], model_code
+    return exec_variable_scope, model_code, class_name
 
 
 async def update_data_object(
@@ -196,7 +196,9 @@ async def object_to_data(
             for obj in data_object
         ]
     if schema_spec and not data_model:
-        data_model, _ = schema_to_data_model(schema_spec)
+        data_models, model_code, class_name = schema_to_data_model(schema_spec)
+        # TODO load all of the data_models into local scope
+        data_model = data_models[class_name]
     if not coerce:
         return data_model(**data_object)
 

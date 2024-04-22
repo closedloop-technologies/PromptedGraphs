@@ -4590,6 +4590,25 @@ pydantic = ">=2.3.0"
 python-dotenv = ">=0.21.0"
 
 [[package]]
+name = "pydot"
+version = "2.0.0"
+description = "Python interface to Graphviz's Dot"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "pydot-2.0.0-py3-none-any.whl", hash = "sha256:408a47913ea7bd5d2d34b274144880c1310c4aee901f353cf21fe2e526a4ea28"},
+    {file = "pydot-2.0.0.tar.gz", hash = "sha256:60246af215123fa062f21cd791be67dda23a6f280df09f68919e637a1e4f3235"},
+]
+
+[package.dependencies]
+pyparsing = ">=3"
+
+[package.extras]
+dev = ["black", "chardet"]
+release = ["zest.releaser[recommended]"]
+tests = ["black", "chardet", "tox"]
+
+[[package]]
 name = "pyfiglet"
 version = "1.0.2"
 description = "Pure-python FIGlet implementation"
@@ -7324,4 +7343,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.13"
-content-hash = "bd069f84e33b34455ab05886abc8b937f930e3df52952e0bcaa216c7bdce8f8f"
+content-hash = "da97b3c4ce2f9305fce90d4843ec4f8ff06e60e5efa4bdff4cc02ce96f8fea8e"

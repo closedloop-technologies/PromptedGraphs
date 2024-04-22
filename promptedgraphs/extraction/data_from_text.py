@@ -10,6 +10,7 @@ from promptedgraphs.generation.schema_from_model import schema_from_model
 from promptedgraphs.llms.chat import Chat
 from promptedgraphs.llms.openai_chat import LanguageModel
 from promptedgraphs.llms.usage import Usage
+from promptedgraphs.models import ChatMessage
 
 logger = getLogger(__name__)
 
@@ -49,33 +50,42 @@ async def extraction_chat(
     text: str,
     chat: Chat = None,
     system_message: str = SYSTEM_MESSAGE,
+    message_template: str = MESSAGE_TEMPLATE,
     usage: Usage = None,
+    message_history: list[ChatMessage] = None,
+    force_json: bool = True,
     **chat_kwargs,
 ) -> list[BaseModel] | list[str]:
     usage = usage or Usage()
-    msg = MESSAGE_TEMPLATE.format(text=text or "").strip()
 
+    messages = [{"role": "system", "content": system_message.strip()}]
+    messages.extend(message_history or [])
+    messages.append(
+        {"role": "user", "content": message_template.format(text=text or "").strip()}
+    )
     # TODO replace with a tiktoken model and pad the message by 2x
+    default_chat_args = {
+        "max_tokens": 4_096,
+        "temperature": 0.0,
+    }
+    if force_json:
+        default_chat_args["response_format"] = {"type": "json_object"}
+
     response = await chat.chat_completion(
-        messages=[
-            {"role": "system", "content": system_message.strip()},
-            {"role": "system", "content": msg.strip()},
-        ],
-        **{
-            **{
-                "max_tokens": 4_096,
-                "temperature": 0.0,
-                "response_format": {"type": "json_object"},
-            },
-            **chat_kwargs,
-        },
+        messages=messages, **default_chat_args | chat_kwargs
     )
     if hasattr(response, "usage"):
         usage.completion_tokens = getattr(response.usage, "completion_tokens") or 0
         usage.prompt_tokens = getattr(response.usage, "prompt_tokens") or 0
 
     # TODO check if the results stopped early, in that case, the list might be truncated
-    results = json.loads(response.choices[0].message.content)
+    if force_json:
+        results = json.loads(response.choices[0].message.content)
+    else:
+        content = response.choices[0].message.content
+        # TODO this will break if multiple json objects are in the response
+        results = json.loads(content.split("```json")[1].split("```")[0])
+
     if "items" in results:
         results = results["items"]
     return results if isinstance(results, list) else [results]
