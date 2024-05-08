@@ -9,6 +9,7 @@ We can apply the following frameworks to help us understand the data model:
 4. Entity-Relationship Graph: A graph that represents the relationships between entities.
 """
 import json
+
 from typing import List, Optional, Union
 
 import networkx as nx
@@ -21,11 +22,8 @@ from promptedgraphs.llms.chat import Chat
 from promptedgraphs.llms.openai_chat import LanguageModel
 from promptedgraphs.llms.usage import Usage
 from promptedgraphs.models import ChatMessage
+from promptedgraphs.normalization.object_to_data import object_to_data
 from promptedgraphs.normalization.vis_graphs import data_graph_as_markdown
-
-
-class EntityRelationshipGraph(BaseModel):
-    pass
 
 
 domain_model_system_message = """
@@ -155,7 +153,7 @@ Here are the key qualities of an effective Ontology:
  * Prefer fewer Concepts and more relationships and properties.
  * Prefer Concepts in their cannonical and sigular form over plural.
 
-Return a JSON format
+Return a JSON format and DO NOT include $def references.  Include all concepts, relationships and properties as nested objects.
 """
 
 
@@ -185,8 +183,58 @@ class Ontology(BaseModel):
     properties: List[Property]
 
 
-Ontology.model_rebuild()
+erp_system_message = """
+You are an expert in data modeling, ontology, and databases.  
+You are building an Entity Relationship Diagram from the provided Data Model, Domain Model, Taxonomy and Ontology.
 
+An effective Entity Relationship Diagram (ERD) for a normalized schema should possess the following key qualities:
+
+ * **Clarity**: Clear depiction of entities, attributes, and relationships using consistent and familiar symbols.
+ * **Completeness**: Inclusion of all necessary entities, relationships, and key attributes relevant to the domain.
+ * **Correctness**: Accurate representation of business rules and data relationships, including correct cardinality and participation.
+ * **Normalization**: Adherence to normalization principles to minimize redundancy and avoid data anomalies.
+ * **Minimal Redundancy**: Avoidance of unnecessary data duplication.
+ * **Scalability**: Capability to accommodate future growth and changes in data requirements.
+ * **Consistency**: Uniform application of naming conventions, symbols, and notations.
+ * **Integration Readiness**: Design supports easy integration with other data models or systems.
+ * **Documentation**: Comprehensive documentation of entities, relationships, and constraints.
+ * **Visual Organization**: Logical and readable layout to enhance understanding and usability.
+
+
+## Schema of an Entity Relationship Diagram
+Generate this from the provided Data Model, Domain Model and Taxonomy
+```json
+{schema}
+```
+
+### Key Points
+ * The ERD should be normalized to 3rd normal form.
+ * Use standard ERD symbols and notation.
+ * Should be easily translated into a database schema.
+
+Return a JSON format
+"""
+
+class Attribute(BaseModel):
+    name: str
+    data_type: str
+    description: Optional[str] = None
+
+class Entity(BaseModel):
+    name: str
+    attributes: List[Attribute]
+
+class Relationship(BaseModel):
+    from_entity: str
+    to_entity: str
+    relationship_type: str = Field(..., description="Could be 'one-to-one', 'one-to-many', 'many-to-many'")
+    description: Optional[str] = None
+
+class EntityRelationshipDiagram(BaseModel):
+    entities: List[Entity]
+    relationships: List[Relationship]
+    diagram_name: Optional[str] = None
+    description: Optional[str] = None
 
 async def data_graph_to_domain_model(
     g: nx.DiGraph | nx.MultiDiGraph,
@@ -204,7 +252,7 @@ async def data_graph_to_domain_model(
     system_message = domain_model_system_message.format(
         schema=json.dumps(schema, indent=4),
     )
-    domain_model = await extraction_chat(
+    domain_models = await extraction_chat(
         md,
         chat=chat,
         system_message=system_message,
@@ -213,12 +261,19 @@ async def data_graph_to_domain_model(
         message_history=[],
         temperature=temperature,
     )
-    domain_model = list(domain_model)
-    if not domain_model and not reflect:
+    domain_models = list(domain_models)
+    if not domain_models and not reflect:
         usage.end()
         return None
 
-    domain_model = DomainDrivenDesignModel(**domain_model[0]) if domain_model else None
+    if len(domain_models):
+        domain_model = await object_to_data(
+            domain_models[0],
+            data_model=DomainDrivenDesignModel
+        )
+    else:
+        domain_model = None
+
     if not reflect:
         usage.end()
         return domain_model
@@ -236,7 +291,7 @@ Please reflect on the output above and correct any errors or omissions.
 In particular are there any missing entities that would help when structuring the data model?
 First provide an explanation, than the corrected JSON object.""".strip()
 
-    new_domain_model = await extraction_chat(
+    new_domain_models = await extraction_chat(
         new_msg,
         chat=chat,
         system_message=system_message,
@@ -246,8 +301,16 @@ First provide an explanation, than the corrected JSON object.""".strip()
         temperature=temperature,
         force_json=False,
     )
-    dms = list(new_domain_model)
-    domain_model = DomainDrivenDesignModel(**dms[0]) if len(dms) else None
+    new_domain_models = list(new_domain_models)
+
+    if len(domain_models):
+        domain_model = await object_to_data(
+            new_domain_models[0],
+            data_model=DomainDrivenDesignModel
+        )
+    else:
+        domain_model = None
+    
     usage.end()
     return domain_model
 
@@ -282,7 +345,14 @@ async def data_graph_to_taxonomy(
         usage.end()
         return None
 
-    taxonomy = Taxonomy(**taxonomies[0]) if taxonomies else None
+    if len(taxonomies):
+        taxonomy = await object_to_data(
+            taxonomies[0],
+            data_model=Taxonomy
+        )
+    else:
+        taxonomy = None
+
     if not reflect:
         usage.end()
         return taxonomy
@@ -291,7 +361,7 @@ async def data_graph_to_taxonomy(
         {"role": "user", "content": md},
         {
             "role": "assistant",
-            "content": taxonomy.model_dump_json(indent=4),
+            "content": taxonomy.model_dump_json(indent=4) if taxonomy else '{}',
         },
     ]
 
@@ -311,7 +381,13 @@ First provide an explanation, than the corrected JSON object.""".strip()
         force_json=False,
     )
     new_taxonomies = list(new_taxonomies)
-    new_taxonomy = Taxonomy(**new_taxonomies[0]) if len(new_taxonomies) else None
+    if len(taxonomies):
+        new_taxonomy = await object_to_data(
+            new_taxonomies[0],
+            data_model=Taxonomy
+        )
+    else:
+        new_taxonomy = None
     usage.end()
     return new_taxonomy
 
@@ -333,8 +409,8 @@ async def build_ontology(
     schema = schema_from_model(Ontology)
 
     message_text = f"""{data_graph_as_markdown(data_graph)}\n\n
-##Domain-Driven Design Model\n```json\n{domain_model.model_dump_json(indent=4)}\n```\n\n
-##Taxonomy\n```json\n{taxonomy.model_dump_json(indent=4)}\n```
+## Domain-Driven Design Model\n```json\n{domain_model.model_dump_json(indent=4)}\n```\n\n
+## Taxonomy\n```json\n{taxonomy.model_dump_json(indent=4)}\n```
     """.strip()
 
     system_message = ontology_system_message.format(
@@ -354,7 +430,15 @@ async def build_ontology(
         usage.end()
         return None
 
-    ontology = Ontology(**ontologies[0]) if ontologies else None
+    # object_to_data
+    if ontologies is None or not ontologies:
+        usage.end()
+        ontology = None
+    else:
+        ontology = await object_to_data(
+            ontologies[0],
+            data_model=Ontology
+        )
     if not reflect:
         usage.end()
         return ontology
@@ -363,7 +447,7 @@ async def build_ontology(
         {"role": "user", "content": message_text},
         {
             "role": "assistant",
-            "content": ontology.model_dump_json(indent=4),
+            "content": ontology.model_dump_json(indent=4) if ontology else '{}',
         },
     ]
 
@@ -383,16 +467,103 @@ First provide an explanation, than the corrected JSON object.""".strip()
         force_json=False,
     )
     new_ontologies = list(new_ontologies)
-    new_ontology = Ontology(**new_ontologies[0]) if len(new_ontologies) else None
+
+    if len(new_ontologies):
+        new_ontology = await object_to_data(
+            new_ontologies[0],
+            data_model=Ontology
+        )
+    else:
+        new_ontology = None
     usage.end()
     return new_ontology
 
 
-def create_entity_relationship_graph(
-    data_model: nx.DiGraph | nx.MultiDiGraph, taxonomy: Taxonomy, reflect=True
-) -> EntityRelationshipGraph:
-    raise NotImplementedError("create_entity_relationsip_graph")
+async def build_entity_relationship_graph(
+    data_graph: nx.DiGraph | nx.MultiDiGraph,
+    domain_model: DomainDrivenDesignModel = None,
+    taxonomy: Taxonomy = None,
+    ontology: Ontology = None,
+    model=LanguageModel.GPT35_turbo,
+    chat: Chat = None,
+    usage: Usage = None,
+    temperature=0.0,
+    reflect=True,
+) -> EntityRelationshipDiagram:
+    usage = usage or Usage(model=model)
+    chat = chat or Chat()
+    usage.start()
 
+    schema = schema_from_model(EntityRelationshipDiagram)
+
+    message_text = f"""{data_graph_as_markdown(data_graph)}\n\n
+## Domain-Driven Design Model\n```json\n{domain_model.model_dump_json(indent=4)}\n```\n\n
+## Taxonomy\n```json\n{taxonomy.model_dump_json(indent=4)}\n```\n\n
+## Ontology\n```json\n{ontology.model_dump_json(indent=4)}\n```
+    """.strip()
+
+    system_message = erp_system_message.format(
+        schema=json.dumps(schema, indent=4),
+    )
+    ergs = await extraction_chat(
+        message_text,
+        chat=chat,
+        system_message=system_message,
+        message_template="""{text}""",
+        usage=usage,
+        message_history=[],
+        temperature=temperature,
+    )
+    ergs = list(ergs)
+    if not ergs and not reflect:
+        usage.end()
+        return None
+
+    if len(ergs):
+        erg = await object_to_data(
+            ergs[0],
+            data_model=EntityRelationshipDiagram
+        )
+    else:
+        erg = None
+
+    if not reflect:
+        usage.end()
+        return erg
+
+    message_history: list[ChatMessage] = [
+        {"role": "user", "content": message_text},
+        {
+            "role": "assistant",
+            "content": erg.model_dump_json(indent=4) if erg else '{}',
+        },
+    ]
+
+    new_msg = """
+Please reflect on the output above and correct any errors or omissions.
+In particular are there any missing categories, sub-categories or entities that would help when structuring the data model?
+First provide an explanation, than the corrected JSON object.""".strip()
+
+    new_ergs = await extraction_chat(
+        new_msg,
+        chat=chat,
+        system_message=system_message,
+        message_template="""{text}""",
+        usage=usage,
+        message_history=message_history,
+        temperature=temperature,
+        force_json=False,
+    )
+    new_ergs = list(new_ergs)
+    if len(new_ergs):
+        new_erg = await object_to_data(
+            new_ergs[0],
+            data_model=EntityRelationshipDiagram
+        )
+    else:
+        new_erg = None
+    usage.end()
+    return new_erg
 
 async def main():
     g = nx.MultiDiGraph()

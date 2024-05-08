@@ -11,7 +11,10 @@ from pydantic import BaseModel, EmailStr, Field, RootModel
 
 from promptedgraphs import __version__ as version
 from promptedgraphs.code_execution.safer_python_exec import safer_exec
-from promptedgraphs.generation.schema_from_model import schema_from_model
+from promptedgraphs.generation.schema_from_model import (
+    extract_references,
+    schema_from_model,
+)
 from promptedgraphs.llms.chat import Chat
 
 logger = getLogger(__name__)
@@ -73,14 +76,17 @@ async def correct_value_error(
 
 def get_sub_object(data_object: dict, loc: list[str]) -> dict:
     """Gets a sub-object from a data object."""
-
+    if not loc:
+        return data_object
     for key in loc:
         data_object = data_object[key]
-
-    sub_obj = {key: data_object}
+    sub_obj = {loc[-1]: data_object}
     if len(loc) > 1:
-        for key in loc[-2::-1]:
+        for key in loc[-2::-1]:  # Iterate backwards building up nested objects
             sub_obj = {key: sub_obj}
+
+    if defs := extract_references(sub_obj):
+        raise NotImplementedError(f"References are not yet supported: {defs}")
     return sub_obj
 
 
@@ -99,6 +105,8 @@ def set_data_object_value(
     data_object: dict, new_value: Any, old_value: Any, loc: list[str]
 ):
     """Sets a value in a data object."""
+    if not loc:
+        raise ValueError("Cannot set a value at the root level.")
     for key in loc[:-1]:
         data_object = data_object[key]
     if loc[-1] in new_value:
@@ -150,24 +158,33 @@ async def update_data_object(
     """Updates the data object with error information."""
     logger.debug(f"Updating data object with error: {errors}")
     corrections = []
-    for error in errors():
-        # if error["type"] not in {"value_error", "string_type"}:
-        #     raise ValueError(f"Error type not supported: {error['type']}")
-        old_value = get_sub_object(data_object, loc=error["loc"])
+    for error in errors:
+        if error["type"] == "missing":
+            loc: tuple = error["loc"][:-1] if len(error["loc"]) else ()
+            error_msg = f"{error['msg']}: '{error['loc']}' is missing.  If possible rename a key to match the schema or add the missing key to the object."
+        else:
+            loc = error["loc"]
+            error_msg = error["msg"]
+
+        old_value = get_sub_object(data_object, loc=loc)
+        subschema = get_subschema(schema_spec, loc=loc)
         new_value = await correct_value_error(
             old_value,
-            get_subschema(schema_spec, loc=error["loc"]),
+            subschema,
             error_type=error["type"],
-            error_msg=error["msg"],
+            error_msg=error_msg,
         )
-        set_data_object_value(
-            data_object,
-            new_value=new_value,
-            old_value=old_value,
-            loc=error["loc"],
-        )
+        if len(loc):
+            set_data_object_value(
+                data_object,
+                new_value=new_value,
+                old_value=old_value,
+                loc=loc,
+            )
+        else:
+            data_object = new_value
         corrections.append(
-            (error["loc"], error["type"], error["msg"], old_value, new_value)
+            (loc, error["type"], error_msg, old_value, new_value)
         )
     return data_object, corrections
 
@@ -202,9 +219,6 @@ async def object_to_data(
     if not coerce:
         return data_model(**data_object)
 
-    # Ensure schema_spec is defined. This is needed for the update_data_object function.
-    schema_spec = schema_spec or schema_from_model(data_model)
-
     corrections = []
     while retry_count > 0:
         try:
@@ -216,8 +230,18 @@ async def object_to_data(
                     )
             return data_model(**data_object)
         except Exception as e:
+            errors = e.errors
+            if not isinstance(errors, list):
+                errors = errors()
+
+            # Ensure schema_spec is defined. This is needed for the update_data_object function.
+            schema_spec = schema_spec or schema_from_model(
+                data_model, resolve_refs=True
+            )
+
+            # Update the data object with error information
             data_object, new_corrections = await update_data_object(
-                data_object, schema_spec, errors=e.errors
+                data_object, schema_spec, errors=errors
             )
             if new_corrections:
                 corrections.extend(new_corrections)
