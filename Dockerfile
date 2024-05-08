@@ -32,6 +32,7 @@ COPY . /app/
 
 # # Install the project
 RUN poetry install --no-interaction
+RUN pip install https://github.com/explosion/spacy-experimental/releases/download/v0.6.1/en_coreference_web_trf-3.4.0a2-py3-none-any.whl
 
 # # Command to run tests
 RUN poetry run pytest --cov promptedgraphs && poetry run coverage report

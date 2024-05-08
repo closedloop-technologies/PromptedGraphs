@@ -38,7 +38,7 @@ from promptedgraphs.llms.openai_streaming import (
     GPT_MODEL,
     streaming_chat_completion_request,
 )
-from promptedgraphs.llms.openai_token_counter import Usage
+from promptedgraphs.llms.usage import Usage
 from promptedgraphs.models import ChatMessage, EntityReference
 from promptedgraphs.parsers import extract_partial_list
 

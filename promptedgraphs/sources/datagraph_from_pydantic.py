@@ -12,6 +12,7 @@ import networkx as nx
 import tqdm
 from pydantic import BaseModel, Field
 
+from promptedgraphs.code_execution.safer_python_exec import format_code
 from promptedgraphs.llms.coding import fix_code
 
 logger = logging.getLogger(__name__)
@@ -34,6 +35,7 @@ def kindofsafe_exec(code, dependencies: dict = None):
     ):  # Loading in code by chunks helps with dependency resolution
         dependencies.update(variables)
         exec(snippet, dependencies, variables)
+    DeprecationWarning("This is a deprecated function: use safer_exec")
     return variables
 
 
@@ -201,10 +203,10 @@ def aggregate_python_files(fdir):
     code = []
     for fname in fdir.glob("*.py"):
         with open(fname) as f:
-            c = black.format_str(f.read(), mode=black.FileMode())
+            c = format_code(f.read())
             code.append(c)
             try:
-                black.format_str("\n\n".join(code), mode=black.FileMode())
+                format_code("\n\n".join(code))
             except Exception:
                 logger.error(f"Static code error in: {fname}")
                 return
@@ -215,7 +217,7 @@ def aggregate_python_files(fdir):
     code = isort.code(code, config=config)
 
     # reformat one more time
-    code = black.format_str(code, mode=black.FileMode())
+    code = format_code(code)
 
     with open(fdir / "_all.py", "w") as f:
         f.write(code)
@@ -248,11 +250,11 @@ async def validate_python_files(fdir):
         history = []
         i = 0
         while i < 4:
-            code = black.format_str(code, mode=black.FileMode())
+            code = format_code(code)
             kindofsafe_exec(code)
             # break
             try:
-                code = black.format_str(code, mode=black.FileMode())
+                code = format_code(code)
                 kindofsafe_exec(code)
                 break
             except Exception as e:

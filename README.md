@@ -43,7 +43,7 @@ from [examples/er_reviews.ipynb](https://github.com/closedloop-technologies/Prom
 ```python
 from spacy import displacy
 from promptedgraphs.config import Config
-from promptedgraphs.entity_recognition import extract_entities
+from promptedgraphs.extraction.entities_from_text import entities_from_text
 
 labels = {
     "POSITIVE": "A postive review of a product or service.",
@@ -60,7 +60,7 @@ text_of_reviews = """
 
 # Label Sentiment
 ents = []
-async for msg in extract_entities(
+async for msg in entities_from_text(
     name="sentiment",
     description="Sentiment Analysis of Customer Reviews",
     text=text_of_reviews,
@@ -70,17 +70,11 @@ async for msg in extract_entities(
     ents.append(msg)
 
 # Show Results using spacy.displacy
-displacy.render(
-    {
-        "text": text_of_reviews,
-        "ents": [e.to_dict() for e in ents],
-    },
-    style="ent",
-    jupyter=True,
-    manual=True,
-    options={
-        "colors": {"POSITIVE": "#7aecec", "NEGATIVE": "#f44336", "NEUTRAL": "#f4f442"}
-    },
+render_entities(
+    text=text_of_reviews,
+    entities=ents,
+    labels=labels,
+    colors = {"POSITIVE": "#7aecec", "NEGATIVE": "#f44336", "NEUTRAL": "#f4f442"}
 )
 ```
 ![displacy-sentiment-example](./assets/displacy-sentiment-example.png?raw=true)
@@ -136,7 +130,6 @@ from [examples/de_chatintents.ipynb](https://github.com/closedloop-technologies/
 from pydantic import BaseModel, Field
 
 from promptedgraphs.config import Config
-from promptedgraphs.data_extraction import extract_data
 
 
 class UserIntent(BaseModel):
@@ -166,8 +159,8 @@ class UserIntent(BaseModel):
 
 msg = """It's a busy day, I need to send an email and to buy groceries"""
 
-async for intent in extract_data(
-    text=msg, output_type=list[UserIntent], config=Config()
+async for intent in data_from_text(
+    text=msg, output_type=UserIntent, config=Config()
 ):
     print(intent)
 ```

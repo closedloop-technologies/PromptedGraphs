@@ -77,12 +77,13 @@ Here are some messages a chatbot might receive and their category
 
 """
 import asyncio
+from pprint import pprint
 
 import tqdm
 from pydantic import BaseModel, Field
 
 from promptedgraphs.config import Config, load_config
-from promptedgraphs.data_extraction import extract_data
+from promptedgraphs.extraction.data_from_text import data_from_text
 
 
 async def main():
@@ -132,21 +133,26 @@ async def main():
         )
 
     intents = []
+
     # TODO move to parrellel processing across messages
-    #     """Hello fellow travelers! We're venturing to New Zealand from March 5-18th as a couple. We'll primarily be in Auckland visiting my sister, but we're hoping to explore more of the North Island. Since we're big fans of adventure sports and nature, we're thinking of places like the Tongariro Alpine Crossing or maybe Waitomo Caves. However, we're unsure about the best routes or if there are any hidden gems nearby. Any tips or suggestions? Has anyone been around those areas in March? Recommendations for cozy accommodations, local eateries, or any must-visit spots around Auckland would be greatly appreciated. Cheers!"""
-
-    for i, msg in tqdm.tqdm(enumerate(messages)):
-        async for intent in extract_data(
-            text=msg, output_type=UserIntent, config=Config()
+    # Make it an async generator
+    async def parallel_data_from_text(text):
+        results = []
+        async for result in data_from_text(
+            text=text, output_type=UserIntent, config=Config()
         ):
-            print(i, intent)
-            intents.append((i, intent))
+            results.append((result, text))
+        return results
 
-    # for i, msg in enumerate(messages):
-    #     async for intent in extract_data(
-    #     ):
+    # Create a list of coroutine objects
+    tasks = [parallel_data_from_text(msg) for msg in messages]
 
-    print(intents)
+    # Use as_completed to yield from tasks as they complete
+    for future in asyncio.as_completed(tasks):
+        results = await future
+        intents.extend(results)
+
+    pprint(intents)
 
 
 if __name__ == "__main__":

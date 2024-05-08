@@ -24,8 +24,8 @@ def get_fields(ents: list[EntityReference] | dict | BaseModel):
 
 
 def get_colors(fields: list[str], color_palette: list[float] = None):
-    palette = color_palette or sns.color_palette("Set2", 8)
-    return {f: rgb_to_hex(color) for f, color in zip(list(fields), palette)}
+    palette = color_palette or sns.color_palette("Set2", len(fields))
+    return {f: rgb_to_hex(color)[:7] for f, color in zip(list(fields), palette)}
 
 
 def ensure_entities(
