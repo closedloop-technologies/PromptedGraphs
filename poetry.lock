@@ -1374,7 +1374,6 @@ files = [
 tests = ["asttokens (>=2.1.0)", "coverage", "coverage-enable-subprocess", "ipython", "littleutils", "pytest", "rich"]
 
 [[package]]
-<<<<<<< HEAD
 name = "fastapi"
 version = "0.1.17"
 description = "FastAPI framework, high performance, easy to learn, fast to code, ready for production"
@@ -1456,8 +1455,6 @@ files = [
 devel = ["colorama", "json-spec", "jsonschema", "pylint", "pytest", "pytest-benchmark", "pytest-cache", "validictory"]
 
 [[package]]
-=======
->>>>>>> 975a551 (⬆️ chore(pyproject.toml): update dependencies versions)
 name = "filelock"
 version = "3.13.1"
 description = "A platform independent file lock."
@@ -7753,8 +7750,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.13"
-<<<<<<< HEAD
 content-hash = "e80c5a6b355028350e0681afc058704cddf0debd32f7076783825658f04aa07e"
-=======
-content-hash = "64dfade927b2c7dd549af6d40797a57611166980671f1dfd384652d23ef8eeb6"
->>>>>>> 975a551 (⬆️ chore(pyproject.toml): update dependencies versions)
