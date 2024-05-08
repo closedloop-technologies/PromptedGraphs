@@ -1,10 +1,6 @@
 [tool.poetry]
 name = "promptedgraphs"
-<<<<<<< HEAD
 version = "0.4.0"
-=======
-version = "0.3.3"
->>>>>>> 1488db8 (version bump)
 description = "From Dataset Labeling to Deployment: The Power of NLP and LLMs Combined."
 authors = ["Sean Kruzel <sean@closedloop.tech>"]
 license = "MIT"
@@ -35,14 +31,13 @@ tiktoken = "^0.6.0"
 httpx = "^0.27.0"
 spacy = "^3.7.4"
 googlemaps = "^4.10.0"
-beautifulsoup4 = "^4.12.2"
-pydantic-settings = "^2.0.3"
+beautifulsoup4 = "^4.12.3"
+networkx = "^3.2.1"
+pandas = "^2.2.1"
 seaborn = "^0.13.2"
 nltk = "^3.8.1"
 transformers = "^4.37.2"
-networkx = "^3.1"
 matplotlib = "^3.8.0"
-pandas = "^2.1.1"
 jupyter = "^1.0.0"
 openai = "^1.12.0"
 scikit-learn = "^1.4.0"
@@ -76,6 +71,7 @@ vulture = "^2.7"
 pip-upgrader = "^1.4.15"
 pyupgrade = "^3.4.0"
 ipykernel = "^6.25.2"
+twine = "^5.0.0"
 
 [tool.poetry.scripts]
 promptedgraphs = "promptedgraphs.cli:app"
