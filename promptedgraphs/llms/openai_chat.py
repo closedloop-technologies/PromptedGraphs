@@ -30,7 +30,7 @@ class OpenAIChat:
             )
         except openai.APIConnectionError as e:
             self.logger.error(f"The server could not be reached: {e.__cause__}")
-            raise e
+            raise
         except openai.AuthenticationError as e:
             self.logger.error(f"Authentication with the OpenAI API failed: {e}")
             raise e
