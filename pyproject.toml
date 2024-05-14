@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "promptedgraphs"
-version = "0.4.0"
+version = "0.4.1"
 description = "From Dataset Labeling to Deployment: The Power of NLP and LLMs Combined."
 authors = ["Sean Kruzel <sean@closedloop.tech>"]
 license = "MIT"
@@ -17,7 +17,7 @@ classifiers = [
 "Bug Tracker" = "https://github.com/closedLoop-technologies/promptedgraphs/issues"
 
 [tool.poetry.dependencies]
-python = ">=3.10,<3.13"
+python = ">=3.10,4.0"
 pre-commit = "^3.3.1"
 twine = "^4.0.2"
 gcloud = "^0.18.3"
