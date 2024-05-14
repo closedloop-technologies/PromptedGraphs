@@ -17,7 +17,7 @@ classifiers = [
 "Bug Tracker" = "https://github.com/closedLoop-technologies/promptedgraphs/issues"
 
 [tool.poetry.dependencies]
-python = ">=3.10,4.0"
+python = ">=3.10"
 pre-commit = "^3.3.1"
 twine = "^4.0.2"
 gcloud = "^0.18.3"
